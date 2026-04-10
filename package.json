@@ -1,0 +1,8 @@
+{
+  "name": "chemcore-crm",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "zod": "^4.1.12"
+  }
+}
