@@ -1,4 +1,3 @@
-import "../../styles/onboarding-step1.css";
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 

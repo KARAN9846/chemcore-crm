@@ -59,24 +59,23 @@ const ContactSection = ({
                   : ""
             }`}
           >
-            <div className="input-group">
-              <span className="input-group-text">+91</span>
+            <div className="phone-input-group">
+              <span className="phone-input-prefix">+91</span>
 
               <input
                 type="tel"
                 name="phone"
-                className={`form-control ${
+                placeholder="98765 43210"
+                value={formData.phone || ""}
+                onChange={handleChange}
+                onBlur={handleBlur}
+                className={`form-control phone-input-control ${
                   phoneState.hasError
                     ? "field-error"
                     : phoneState.isValid
                       ? "field-success"
                       : ""
                 }`}
-                placeholder="98765 43210"
-                value={formData.phone || ""}
-                onChange={handleChange}
-                onBlur={handleBlur}
-                style={{ borderLeft: "none" }}
                 maxLength="15"
               />
             </div>
