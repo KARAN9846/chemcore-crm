@@ -9,15 +9,19 @@ import WorkspaceSection from "../../components/branding/WorkspaceSection";
 import DomainSection from "../../components/branding/DomainSection";
 import EmailSection from "../../components/branding/EmailSection";
 import BrandingPreview from "../../components/branding/BrandingPreview";
-import { useToast } from "../../components/common/ToastProvider";
-import { useOnboarding } from "../../context/OnboardingContext";
-import { saveBranding } from "../../api/saveBranding";
+import { useOnboarding } from "../../context/useOnboarding";
+import { ONBOARDING_KEYS } from "../../utils/onboardingStorage";
+import { showError } from "../../utils/toast";
+import {
+  getBranding,
+  saveBranding,
+} from "../../lib/api/saveBranding";
 import {
   brandingSchema,
   normalizeBrandingInput,
 } from "../../../../shared/validation/branding.schema.js";
 
-const STEP_2_DRAFT_KEY = "step2Draft";
+const STEP_2_DRAFT_KEY = ONBOARDING_KEYS.STEP_2_DRAFT;
 const REQUIRED_FIELDS = [
   "primaryColor",
   "workspaceName",
@@ -26,14 +30,24 @@ const REQUIRED_FIELDS = [
 ];
 
 const DEFAULT_FORM = {
-  primaryColor: "#0d2b1a",
-  workspaceName: "ArchemCore CRM",
-  tagline: "Chemical Export Management",
-  fromName: "ArchemCore CRM",
-  replyTo: "crm@archemcore.com",
-  subdomain: "archemcore",
+  primaryColor: "#1f7a35",
+  workspaceName: "",
+  tagline: "",
+  fromName: "",
+  replyTo: "",
+  subdomain: "",
   customDomain: "",
 };
+
+const mapBrandingResponseToForm = (branding = {}) => ({
+  primaryColor: branding.primary_color || "",
+  workspaceName: branding.workspace_name || "",
+  tagline: branding.tagline || "",
+  fromName: branding.from_name || "",
+  replyTo: branding.reply_to_email || "",
+  subdomain: branding.subdomain || "",
+  customDomain: branding.custom_domain || "",
+});
 
 const validateBrandingForm = (form) => {
   const result = brandingSchema.safeParse(normalizeBrandingInput(form));
@@ -55,7 +69,6 @@ const validateBrandingForm = (form) => {
 
 const Step2Branding = () => {
   const navigate = useNavigate();
-  const { showToast } = useToast();
   const { companyId, currentStep, isHydrated, setCurrentStep } =
     useOnboarding();
   const [form, setForm] = useState(DEFAULT_FORM);
@@ -64,6 +77,7 @@ const Step2Branding = () => {
   const [loading, setLoading] = useState(false);
   const [submitError, setSubmitError] = useState("");
   const [draftHydrated, setDraftHydrated] = useState(false);
+  const [isFetchingBranding, setIsFetchingBranding] = useState(true);
 
   useEffect(() => {
     if (!isHydrated) {
@@ -71,25 +85,67 @@ const Step2Branding = () => {
     }
 
     if (!companyId || currentStep < 2) {
-      navigate("/onboarding/step-1", { replace: true });
+      navigate("/onboarding/step1", { replace: true });
       return;
     }
 
-    const savedDraft = localStorage.getItem(STEP_2_DRAFT_KEY);
+    let isMounted = true;
 
-    if (savedDraft) {
+    const hydrateBranding = async () => {
+      setIsFetchingBranding(true);
+
+      let savedDraft = null;
+
       try {
-        setForm((prev) => ({
-          ...prev,
-          ...JSON.parse(savedDraft),
-        }));
+        const rawDraft = localStorage.getItem(STEP_2_DRAFT_KEY);
+
+        if (rawDraft) {
+          savedDraft = JSON.parse(rawDraft);
+        }
       } catch (error) {
         console.error("ERROR:", error);
         localStorage.removeItem(STEP_2_DRAFT_KEY);
       }
-    }
 
-    setDraftHydrated(true);
+      try {
+        const response = await getBranding(companyId);
+        const brandingData = response?.data?.data || null;
+        console.log("API DATA:", brandingData);
+        console.log("DRAFT DATA:", savedDraft);
+
+        if (isMounted) {
+          if (brandingData) {
+            setForm(mapBrandingResponseToForm(brandingData));
+          } else if (savedDraft) {
+            setForm(savedDraft);
+          } else {
+            setForm(DEFAULT_FORM);
+          }
+        }
+      } catch (error) {
+        const message =
+          error?.response?.data?.message ||
+          "Unable to load saved branding right now.";
+
+        if (isMounted) {
+          setSubmitError(message);
+          showError(message);
+        }
+
+        console.error("ERROR:", error);
+      } finally {
+        if (isMounted) {
+          setDraftHydrated(true);
+          setIsFetchingBranding(false);
+        }
+      }
+    };
+
+    hydrateBranding();
+
+    return () => {
+      isMounted = false;
+    };
   }, [companyId, currentStep, isHydrated, navigate]);
 
   useEffect(() => {
@@ -183,10 +239,7 @@ const Step2Branding = () => {
     if (Object.keys(nextErrors).length > 0) {
       setSubmitError("Please fix the required branding fields.");
       scrollToFirstInvalidField(nextErrors);
-      showToast({
-        type: "error",
-        message: "Please fix required fields",
-      });
+      showError("Please fix required fields");
       return;
     }
 
@@ -194,15 +247,12 @@ const Step2Branding = () => {
       setLoading(true);
       setSubmitError("");
 
-      await saveBranding({
-        companyId,
-        payload: normalizeBrandingInput(form),
-      });
+      await saveBranding(companyId, normalizeBrandingInput(form));
 
       localStorage.removeItem(STEP_2_DRAFT_KEY);
-      localStorage.setItem("onboardingStep", "3");
+      localStorage.setItem(ONBOARDING_KEYS.STEP, "3");
       setCurrentStep(3);
-      navigate("/onboarding/step-3");
+      navigate("/onboarding/step3");
     } catch (error) {
       const backendErrors = (
         (error.response && error.response.data?.errors) ||
@@ -232,17 +282,14 @@ const Step2Branding = () => {
           "Something went wrong. Please try again.";
 
       setSubmitError(message);
-      showToast({
-        type: "error",
-        message,
-      });
+      showError(message);
       console.error("ERROR:", error);
     } finally {
       setLoading(false);
     }
   };
 
-  if (!isHydrated || !companyId || currentStep < 2) {
+  if (!isHydrated || !companyId || currentStep < 2 || isFetchingBranding) {
     return null;
   }
 

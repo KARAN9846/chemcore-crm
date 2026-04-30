@@ -20,7 +20,7 @@ const HeroSection = () => {
 
       <button
         className="hero-btn"
-        onClick={() => navigate("/onboarding/step-1")}
+        onClick={() => navigate("/onboarding/step1")}
       >
         Start Setup
       </button>

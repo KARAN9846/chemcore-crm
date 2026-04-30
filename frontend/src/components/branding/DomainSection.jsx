@@ -1,19 +1,68 @@
-const TAKEN_SUBDOMAINS = new Set([
-  "demo",
-  "admin",
-  "app",
-  "test",
-  "dev",
-  "archemcore-demo",
-]);
+import { useEffect, useState } from "react";
 
 const sanitizeSubdomain = (value) =>
   value.toLowerCase().replace(/[^a-z0-9-]/g, "");
 
+const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+const DOMAIN_CHECK_URL = `${BASE_URL}/api/domain/check`;
+
 const DomainSection = ({ form, onChange, onBlur }) => {
   const subdomain = sanitizeSubdomain(form.subdomain || "");
-  const isAvailable = subdomain && !TAKEN_SUBDOMAINS.has(subdomain);
-  const isTaken = subdomain && TAKEN_SUBDOMAINS.has(subdomain);
+  const [isChecking, setIsChecking] = useState(false);
+  const [domainStatus, setDomainStatus] = useState(null);
+
+  useEffect(() => {
+    if (!subdomain) {
+      setIsChecking(false);
+      setDomainStatus(null);
+      return undefined;
+    }
+
+    if (subdomain.length < 3) {
+      setIsChecking(false);
+      setDomainStatus(null);
+      return undefined;
+    }
+
+    setDomainStatus(null);
+    setIsChecking(true);
+    let currentRequest = true;
+
+    const timeoutId = window.setTimeout(async () => {
+      try {
+        if (!currentRequest) {
+          return;
+        }
+
+        const response = await fetch(
+          `${DOMAIN_CHECK_URL}?name=${encodeURIComponent(subdomain)}`,
+        );
+        const data = await response.json();
+
+        if (!currentRequest) {
+          return;
+        }
+
+        setDomainStatus(data.available ? "available" : "taken");
+      } catch (error) {
+        console.error("ERROR:", error);
+        if (!currentRequest) {
+          return;
+        }
+
+        setDomainStatus("error");
+      } finally {
+        if (currentRequest) {
+          setIsChecking(false);
+        }
+      }
+    }, 400);
+
+    return () => {
+      currentRequest = false;
+      window.clearTimeout(timeoutId);
+    };
+  }, [subdomain]);
 
   return (
     <div className="form-section">
@@ -43,17 +92,36 @@ const DomainSection = ({ form, onChange, onBlur }) => {
         {subdomain ? (
           <div
             className={`domain-status ${
-              isTaken ? "taken" : isAvailable ? "available" : "checking"
+              isChecking
+                ? "checking"
+                : domainStatus === "taken"
+                  ? "taken"
+                  : domainStatus === "available"
+                    ? "available"
+                    : ""
             }`}
           >
-            <i
-              className={`bi ${
-                isTaken ? "bi-x-circle-fill" : "bi-check-circle-fill"
-              }`}
-            ></i>
-            {isTaken
-              ? `${subdomain}.chemcore.app is taken`
-              : `${subdomain}.chemcore.app is available`}
+            {isChecking ? (
+              <>
+                <i className="bi bi-hourglass-split"></i>
+                {`${subdomain}.chemcore.app checking...`}
+              </>
+            ) : domainStatus === "error" ? (
+              <>
+                <i className="bi bi-exclamation-circle-fill"></i>
+                Unable to check domain right now
+              </>
+            ) : domainStatus === "taken" ? (
+              <>
+                <i className="bi bi-x-circle-fill"></i>
+                {`${subdomain}.chemcore.app is taken`}
+              </>
+            ) : domainStatus === "available" ? (
+              <>
+                <i className="bi bi-check-circle-fill"></i>
+                {`${subdomain}.chemcore.app is available`}
+              </>
+            ) : null}
           </div>
         ) : null}
       </div>

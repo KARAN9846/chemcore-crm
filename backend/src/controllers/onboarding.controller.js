@@ -2,10 +2,6 @@ import pool from "../config/db.js";
 import {
   companySchema,
 } from "../../../shared/validation/company.schema.js";
-import {
-  brandingSchema,
-  normalizeBrandingInput,
-} from "../../../shared/validation/branding.schema.js";
 
 const clean = (value) => (typeof value === "string" ? value.trim() : value);
 
@@ -16,23 +12,6 @@ const sanitizeRequestBody = (body = {}) =>
 
 const validateCompanyPayload = (body) => {
   const result = companySchema.safeParse(sanitizeRequestBody(body));
-
-  if (result.success) {
-    return { errors: [], data: result.data };
-  }
-
-  return {
-    errors: result.error.issues.map((issue) => ({
-      field: issue.path[0] || "form",
-      message: issue.message,
-    })),
-    data: null,
-  };
-};
-
-const validateBrandingPayload = (body) => {
-  const normalizedPayload = normalizeBrandingInput(sanitizeRequestBody(body));
-  const result = brandingSchema.safeParse(normalizedPayload);
 
   if (result.success) {
     return { errors: [], data: result.data };
@@ -67,34 +46,6 @@ const mapCompanyPayload = (payload) => ({
   website: payload.website,
   timezone: payload.timezone,
 });
-
-const mapBrandingPayload = (payload) => ({
-  primary_color: payload.primaryColor,
-  workspace_name: payload.workspaceName,
-  tagline: payload.tagline,
-  from_name: payload.fromName,
-  reply_to: payload.replyTo,
-  subdomain: payload.subdomain,
-  custom_domain: payload.customDomain,
-});
-
-const ensureBrandingTable = async () => {
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS company_branding (
-      id SERIAL PRIMARY KEY,
-      company_id INTEGER NOT NULL UNIQUE REFERENCES companies(id) ON DELETE CASCADE,
-      primary_color VARCHAR(7) NOT NULL,
-      workspace_name VARCHAR(50) NOT NULL,
-      tagline VARCHAR(60),
-      from_name VARCHAR(50) NOT NULL,
-      reply_to VARCHAR(255) NOT NULL,
-      subdomain VARCHAR(63),
-      custom_domain VARCHAR(255),
-      created_at TIMESTAMP DEFAULT NOW(),
-      updated_at TIMESTAMP DEFAULT NOW()
-    )
-  `);
-};
 
 export const createCompany = async (req, res) => {
   try {
@@ -277,117 +228,6 @@ export const getCompanyById = async (req, res) => {
 
     return res.status(200).json({
       message: "Company fetched successfully",
-      data: result.rows[0],
-    });
-  } catch (err) {
-    console.error("FULL ERROR:", err);
-    return res.status(500).json({
-      success: false,
-      message: "Internal server error",
-    });
-  }
-};
-
-export const saveBranding = async (req, res) => {
-  try {
-    const { companyId } = req.params;
-    const { errors: validationError, data: validatedPayload } =
-      validateBrandingPayload(req.body);
-
-    if (validationError.length > 0) {
-      return res.status(400).json({
-        success: false,
-        errors: validationError,
-      });
-    }
-
-    const companyCheck = await pool.query(
-      "SELECT id FROM companies WHERE id = $1",
-      [companyId],
-    );
-
-    if (companyCheck.rowCount === 0) {
-      return res.status(404).json({
-        success: false,
-        message: "Company not found",
-      });
-    }
-
-    await ensureBrandingTable();
-
-    const dbPayload = mapBrandingPayload(validatedPayload);
-    const result = await pool.query(
-      `INSERT INTO company_branding (
-        company_id,
-        primary_color,
-        workspace_name,
-        tagline,
-        from_name,
-        reply_to,
-        subdomain,
-        custom_domain
-      )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-      ON CONFLICT (company_id)
-      DO UPDATE SET
-        primary_color = EXCLUDED.primary_color,
-        workspace_name = EXCLUDED.workspace_name,
-        tagline = EXCLUDED.tagline,
-        from_name = EXCLUDED.from_name,
-        reply_to = EXCLUDED.reply_to,
-        subdomain = EXCLUDED.subdomain,
-        custom_domain = EXCLUDED.custom_domain,
-        updated_at = NOW()
-      RETURNING *`,
-      [
-        companyId,
-        dbPayload.primary_color,
-        dbPayload.workspace_name,
-        dbPayload.tagline,
-        dbPayload.from_name,
-        dbPayload.reply_to,
-        dbPayload.subdomain,
-        dbPayload.custom_domain,
-      ],
-    );
-
-    return res.status(200).json({
-      success: true,
-      message: "Branding saved successfully",
-      data: {
-        companyId: Number(companyId),
-        branding: result.rows[0],
-      },
-    });
-  } catch (err) {
-    console.error("FULL ERROR:", err);
-    return res.status(500).json({
-      success: false,
-      message: "Internal server error",
-    });
-  }
-};
-
-export const getBrandingByCompanyId = async (req, res) => {
-  try {
-    const { companyId } = req.params;
-
-    await ensureBrandingTable();
-
-    const result = await pool.query(
-      "SELECT * FROM company_branding WHERE company_id = $1",
-      [companyId],
-    );
-
-    if (result.rowCount === 0) {
-      return res.status(404).json({
-        success: false,
-        message: "Branding not found",
-      });
-    }
-
-    return res.status(200).json({
-      success: true,
       data: result.rows[0],
     });
   } catch (err) {
