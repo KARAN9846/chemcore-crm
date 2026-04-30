@@ -3,6 +3,7 @@ import MemberRow from "./MemberRow";
 const MemberList = ({
   members,
   roles,
+  errors,
   updateMember,
   removeMember,
 }) => {
@@ -15,6 +16,7 @@ const MemberList = ({
           index={index}
           membersLength={members.length}
           roles={roles}
+          errors={errors[member.id]}
           updateMember={updateMember}
           removeMember={removeMember}
         />

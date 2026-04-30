@@ -10,8 +10,12 @@ import RegistrationSection from "../../components/onboarding/form/RegistrationSe
 import AddressSection from "../../components/onboarding/form/AddressSection";
 import ContactSection from "../../components/onboarding/form/ContactSection";
 import FormActions from "../../components/onboarding/form/FormActions";
-import { useToast } from "../../components/common/ToastProvider";
-import { useOnboarding } from "../../context/OnboardingContext";
+import { useOnboarding } from "../../context/useOnboarding";
+import {
+  ONBOARDING_KEYS,
+  readOnboardingCompanyId,
+} from "../../utils/onboardingStorage";
+import { showError } from "../../utils/toast";
 import {
   companyFormFieldMap,
   companySchema,
@@ -19,7 +23,7 @@ import {
 } from "../../../../shared/validation/company.schema.js";
 import { saveCompany } from "../../lib/api/saveCompany";
 
-const STEP_1_DRAFT_KEY = "step1Draft";
+const STEP_1_DRAFT_KEY = ONBOARDING_KEYS.STEP_1_DRAFT;
 
 const REQUIRED_FIELDS = [
   "companyName",
@@ -79,7 +83,6 @@ const validateFormData = (formData) => {
 
 const Step1Company = () => {
   const navigate = useNavigate();
-  const { showToast } = useToast();
   const { companyId, setCompanyId, setCurrentStep } = useOnboarding();
   const [formDataState, setFormDataState] = useState({});
   const [logoFile, setLogoFile] = useState(null);
@@ -101,7 +104,7 @@ const Step1Company = () => {
       }
     }
 
-    const savedStep = Number(localStorage.getItem("onboardingStep"));
+    const savedStep = Number(localStorage.getItem(ONBOARDING_KEYS.STEP));
     if (!Number.isFinite(savedStep) || savedStep < 1) {
       setCurrentStep(1);
     }
@@ -188,17 +191,14 @@ const Step1Company = () => {
     if (Object.keys(nextErrors).length > 0) {
       setSubmitError("Please fill all required fields.");
       scrollToFirstInvalidField(nextErrors);
-      showToast({
-        type: "error",
-        message: "Please fill all required fields",
-      });
+      showError("Please fill all required fields");
       return;
     }
 
     setSubmitError("");
 
     const formData = new FormData();
-    const activeCompanyId = companyId || localStorage.getItem("companyId");
+    const activeCompanyId = companyId || readOnboardingCompanyId();
     const url = activeCompanyId
       ? `http://localhost:5000/api/onboarding/company/${activeCompanyId}`
       : "http://localhost:5000/api/onboarding/company";
@@ -244,15 +244,14 @@ const Step1Company = () => {
       });
 
       if (data?.data?.companyId) {
-        localStorage.setItem("companyId", data.data.companyId);
         setCompanyId(String(data.data.companyId));
       }
 
-      localStorage.setItem("onboardingStep", "2");
+      localStorage.setItem(ONBOARDING_KEYS.STEP, "2");
       setCurrentStep(2);
       localStorage.removeItem(STEP_1_DRAFT_KEY);
       console.log("SUCCESS:", data);
-      navigate("/onboarding/step-2");
+      navigate("/onboarding/step2");
     } catch (error) {
       const backendErrors = (
         (error.response && error.response.data?.errors) ||
@@ -285,10 +284,7 @@ const Step1Company = () => {
           "Something went wrong. Please try again.";
 
       setSubmitError(message);
-      showToast({
-        type: "error",
-        message,
-      });
+      showError(message);
       console.error("ERROR:", error);
     } finally {
       setLoading(false);

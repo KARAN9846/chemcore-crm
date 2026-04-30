@@ -3,6 +3,7 @@ const MemberRow = ({
   index,
   membersLength,
   roles,
+  errors,
   updateMember,
   removeMember,
 }) => {
@@ -42,6 +43,7 @@ const MemberRow = ({
             updateMember(member.id, "name", event.target.value)
           }
         />
+        {errors?.name && <div className="input-error">{errors.name}</div>}
       </div>
 
       <div>
@@ -62,6 +64,7 @@ const MemberRow = ({
             updateMember(member.id, "email", event.target.value)
           }
         />
+        {errors?.email && <div className="input-error">{errors.email}</div>}
       </div>
 
       <div>
@@ -87,6 +90,7 @@ const MemberRow = ({
             </option>
           ))}
         </select>
+        {errors?.role && <div className="input-error">{errors.role}</div>}
       </div>
 
       <div

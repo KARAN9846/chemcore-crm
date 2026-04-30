@@ -7,7 +7,9 @@ import AddMemberButton from "../../components/onboarding/team/AddMemberButton";
 import InviteStats from "../../components/onboarding/team/InviteStats";
 import MemberList from "../../components/onboarding/team/MemberList";
 import RoleCards from "../../components/onboarding/team/RoleCards";
-import { useOnboarding } from "../../context/OnboardingContext";
+import { inviteTeam } from "../../api/team.api";
+import { useOnboarding } from "../../context/useOnboarding";
+import { showError, showLoading, updateToast } from "../../utils/toast";
 
 const ROLE_OPTIONS = [
   {
@@ -51,6 +53,8 @@ const Step3TeamInvite = () => {
   const navigate = useNavigate();
   const { companyId, currentStep, isHydrated } = useOnboarding();
   const [members, setMembers] = useState([createMember(1)]);
+  const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState({});
 
   useEffect(() => {
     if (!isHydrated) {
@@ -58,7 +62,7 @@ const Step3TeamInvite = () => {
     }
 
     if (!companyId || currentStep < 3) {
-      navigate("/onboarding/step-2", { replace: true });
+      navigate("/onboarding/step2", { replace: true });
     }
   }, [companyId, currentStep, isHydrated, navigate]);
 
@@ -72,6 +76,26 @@ const Step3TeamInvite = () => {
         member.id === id ? { ...member, [field]: value } : member,
       ),
     );
+
+    setErrors((prev) => {
+      if (!prev[id]?.[field]) {
+        return prev;
+      }
+
+      const updatedMemberErrors = { ...prev[id] };
+      delete updatedMemberErrors[field];
+
+      if (Object.keys(updatedMemberErrors).length === 0) {
+        const updatedErrors = { ...prev };
+        delete updatedErrors[id];
+        return updatedErrors;
+      }
+
+      return {
+        ...prev,
+        [id]: updatedMemberErrors,
+      };
+    });
   };
 
   const addMember = () => {
@@ -86,7 +110,76 @@ const Step3TeamInvite = () => {
 
       return prev.filter((member) => member.id !== id);
     });
+
+    setErrors((prev) => {
+      if (!prev[id]) {
+        return prev;
+      }
+
+      const updatedErrors = { ...prev };
+      delete updatedErrors[id];
+      return updatedErrors;
+    });
   };
+
+  const handleSubmit = async () => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const validationErrors = {};
+
+    members.forEach((member) => {
+      const memberErrors = {};
+
+      if (!member.name.trim()) {
+        memberErrors.name = "Name is required";
+      }
+
+      if (!emailRegex.test(member.email)) {
+        memberErrors.email = "Valid email required";
+      }
+
+      if (!member.role) {
+        memberErrors.role = "Role is required";
+      }
+
+      if (Object.keys(memberErrors).length > 0) {
+        validationErrors[member.id] = memberErrors;
+      }
+    });
+
+    if (Object.keys(validationErrors).length > 0) {
+      setErrors(validationErrors);
+      showError("Please fix errors");
+      return;
+    }
+
+    const toastId = showLoading("Sending invites...");
+
+    try {
+      setLoading(true);
+      setErrors({});
+
+      const res = await inviteTeam(companyId, members);
+
+      if (res.success) {
+        console.log(res.users);
+        updateToast(toastId, "Invites sent successfully", "success");
+        navigate("/onboarding/step4");
+        return;
+      }
+
+      updateToast(toastId, res.message, "error");
+    } catch (error) {
+      console.error("Team invite error:", error);
+      updateToast(toastId, "Something went wrong", "error");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const isFormInvalid = members.some(
+    (member) =>
+      !member.name.trim() || !member.email.includes("@") || !member.role,
+  );
 
   const invitedCount = members.filter(
     (member) => member.name || member.email || member.role,
@@ -171,6 +264,7 @@ const Step3TeamInvite = () => {
             <MemberList
               members={members}
               roles={ROLE_OPTIONS}
+              errors={errors}
               updateMember={updateMember}
               removeMember={removeMember}
             />
@@ -180,7 +274,7 @@ const Step3TeamInvite = () => {
             <span className="skip-link">
               Don&apos;t want to invite anyone now?{" "}
               <a
-                href="/onboarding/step-4"
+                href="/onboarding/step4"
                 onClick={(event) => {
                   event.preventDefault();
                 }}
@@ -191,18 +285,24 @@ const Step3TeamInvite = () => {
 
             <div className="form-actions">
               <a
-                href="/onboarding/step-2"
+                href="/onboarding/step2"
                 className="btn-back"
                 onClick={(event) => {
                   event.preventDefault();
-                  navigate("/onboarding/step-2");
+                  navigate("/onboarding/step2");
                 }}
               >
                 <i className="bi bi-arrow-left"></i> Back
               </a>
 
-              <button type="button" className="btn-next">
-                Send Invites & Continue <i className="bi bi-arrow-right"></i>
+              <button
+                type="button"
+                className="btn-next"
+                onClick={handleSubmit}
+                disabled={loading || isFormInvalid}
+              >
+                {loading ? "Sending..." : "Send Invites & Continue"}{" "}
+                <i className="bi bi-arrow-right"></i>
               </button>
             </div>
           </form>

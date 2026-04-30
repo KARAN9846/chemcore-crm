@@ -52,11 +52,9 @@ const DomainSection = ({ form, onChange, onBlur }) => {
 
         setDomainStatus("error");
       } finally {
-        if (!currentRequest) {
-          return;
+        if (currentRequest) {
+          setIsChecking(false);
         }
-
-        setIsChecking(false);
       }
     }, 400);
 

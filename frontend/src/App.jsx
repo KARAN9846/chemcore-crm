@@ -1,14 +1,13 @@
+import { Toaster } from "react-hot-toast";
 import AppRoutes from "./routes/AppRoutes";
 import { OnboardingProvider } from "./context/OnboardingContext";
-import { ToastProvider } from "./components/common/ToastProvider";
 
 function App() {
   return (
-    <ToastProvider>
-      <OnboardingProvider>
-        <AppRoutes />
-      </OnboardingProvider>
-    </ToastProvider>
+    <OnboardingProvider>
+      <AppRoutes />
+      <Toaster position="top-right" />
+    </OnboardingProvider>
   );
 }
 

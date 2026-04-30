@@ -4,10 +4,8 @@ import StepsSection from "../../components/onboarding/landing/StepsSection";
 import FeaturesSection from "../../components/onboarding/landing/FeaturesSection";
 import CTASection from "../../components/onboarding/landing/CTASection";
 import Footer from "../../components/layout/Footer";
-import { useNavigate } from "react-router-dom";
 
 const OnboardingStart = () => {
-  const navigate = useNavigate();
   return (
     <>
       <TopBar />

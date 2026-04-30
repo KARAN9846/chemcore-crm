@@ -8,7 +8,7 @@ const CTASection = () => {
 
       <button
         className="hero-btn"
-        onClick={() => navigate("/onboarding/step-1")}
+        onClick={() => navigate("/onboarding/step1")}
       >
         Begin Setup — Step 1 of 6
       </button>

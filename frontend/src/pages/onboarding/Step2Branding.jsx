@@ -9,8 +9,9 @@ import WorkspaceSection from "../../components/branding/WorkspaceSection";
 import DomainSection from "../../components/branding/DomainSection";
 import EmailSection from "../../components/branding/EmailSection";
 import BrandingPreview from "../../components/branding/BrandingPreview";
-import { useToast } from "../../components/common/ToastProvider";
-import { useOnboarding } from "../../context/OnboardingContext";
+import { useOnboarding } from "../../context/useOnboarding";
+import { ONBOARDING_KEYS } from "../../utils/onboardingStorage";
+import { showError } from "../../utils/toast";
 import {
   getBranding,
   saveBranding,
@@ -20,7 +21,7 @@ import {
   normalizeBrandingInput,
 } from "../../../../shared/validation/branding.schema.js";
 
-const STEP_2_DRAFT_KEY = "step2Draft";
+const STEP_2_DRAFT_KEY = ONBOARDING_KEYS.STEP_2_DRAFT;
 const REQUIRED_FIELDS = [
   "primaryColor",
   "workspaceName",
@@ -68,7 +69,6 @@ const validateBrandingForm = (form) => {
 
 const Step2Branding = () => {
   const navigate = useNavigate();
-  const { showToast } = useToast();
   const { companyId, currentStep, isHydrated, setCurrentStep } =
     useOnboarding();
   const [form, setForm] = useState(DEFAULT_FORM);
@@ -85,7 +85,7 @@ const Step2Branding = () => {
     }
 
     if (!companyId || currentStep < 2) {
-      navigate("/onboarding/step-1", { replace: true });
+      navigate("/onboarding/step1", { replace: true });
       return;
     }
 
@@ -129,10 +129,7 @@ const Step2Branding = () => {
 
         if (isMounted) {
           setSubmitError(message);
-          showToast({
-            type: "error",
-            message,
-          });
+          showError(message);
         }
 
         console.error("ERROR:", error);
@@ -149,7 +146,7 @@ const Step2Branding = () => {
     return () => {
       isMounted = false;
     };
-  }, [companyId, currentStep, isHydrated, navigate, showToast]);
+  }, [companyId, currentStep, isHydrated, navigate]);
 
   useEffect(() => {
     if (!draftHydrated) {
@@ -242,10 +239,7 @@ const Step2Branding = () => {
     if (Object.keys(nextErrors).length > 0) {
       setSubmitError("Please fix the required branding fields.");
       scrollToFirstInvalidField(nextErrors);
-      showToast({
-        type: "error",
-        message: "Please fix required fields",
-      });
+      showError("Please fix required fields");
       return;
     }
 
@@ -256,9 +250,9 @@ const Step2Branding = () => {
       await saveBranding(companyId, normalizeBrandingInput(form));
 
       localStorage.removeItem(STEP_2_DRAFT_KEY);
-      localStorage.setItem("onboardingStep", "3");
+      localStorage.setItem(ONBOARDING_KEYS.STEP, "3");
       setCurrentStep(3);
-      navigate("/onboarding/team");
+      navigate("/onboarding/step3");
     } catch (error) {
       const backendErrors = (
         (error.response && error.response.data?.errors) ||
@@ -288,10 +282,7 @@ const Step2Branding = () => {
           "Something went wrong. Please try again.";
 
       setSubmitError(message);
-      showToast({
-        type: "error",
-        message,
-      });
+      showError(message);
       console.error("ERROR:", error);
     } finally {
       setLoading(false);

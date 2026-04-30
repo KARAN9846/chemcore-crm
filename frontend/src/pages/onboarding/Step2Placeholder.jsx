@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 
 import TopBar from "../../components/layout/TopBar";
 import ProgressBar from "../../components/onboarding/layout/ProgressBar";
-import { useOnboarding } from "../../context/OnboardingContext";
+import { useOnboarding } from "../../context/useOnboarding";
 
 const Step2Placeholder = () => {
   const navigate = useNavigate();
@@ -15,7 +15,7 @@ const Step2Placeholder = () => {
     }
 
     if (!companyId || currentStep < 2) {
-      navigate("/onboarding/step-1", { replace: true });
+      navigate("/onboarding/step1", { replace: true });
     }
   }, [companyId, currentStep, isHydrated, navigate]);
 
