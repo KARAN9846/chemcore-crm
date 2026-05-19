@@ -1,24 +1,50 @@
 import { useEffect, useState } from "react";
 
-const sanitizeSubdomain = (value) =>
-  value.toLowerCase().replace(/[^a-z0-9-]/g, "");
+const normalizeSubdomain = (value) => value.toLowerCase();
+
+const validateSubdomain = (value) => {
+  if (!value) {
+    return "";
+  }
+
+  if (value.length < 3) {
+    return "Subdomain must be at least 3 characters";
+  }
+
+  if (!/^[a-z0-9-]+$/.test(value)) {
+    return "Only lowercase letters, numbers, and hyphens allowed";
+  }
+
+  if (value.startsWith("-") || value.endsWith("-")) {
+    return "Subdomain cannot start or end with hyphen";
+  }
+
+  return "";
+};
 
 const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 const DOMAIN_CHECK_URL = `${BASE_URL}/api/domain/check`;
 
 const DomainSection = ({ form, onChange, onBlur }) => {
-  const subdomain = sanitizeSubdomain(form.subdomain || "");
+  const subdomain = normalizeSubdomain(form.subdomain || "");
+  const validationMessage = validateSubdomain(subdomain);
   const [isChecking, setIsChecking] = useState(false);
   const [domainStatus, setDomainStatus] = useState(null);
 
   useEffect(() => {
+    console.log("SUBDOMAIN VALIDATION", {
+      subdomain,
+      validationMessage,
+    });
+
     if (!subdomain) {
       setIsChecking(false);
       setDomainStatus(null);
       return undefined;
     }
 
-    if (subdomain.length < 3) {
+    if (validationMessage) {
+      console.log("SUBDOMAIN INVALID", validationMessage);
       setIsChecking(false);
       setDomainStatus(null);
       return undefined;
@@ -34,6 +60,7 @@ const DomainSection = ({ form, onChange, onBlur }) => {
           return;
         }
 
+        console.log("SUBDOMAIN CHECK START", subdomain);
         const response = await fetch(
           `${DOMAIN_CHECK_URL}?name=${encodeURIComponent(subdomain)}`,
         );
@@ -43,7 +70,13 @@ const DomainSection = ({ form, onChange, onBlur }) => {
           return;
         }
 
-        setDomainStatus(data.available ? "available" : "taken");
+        if (data.available) {
+          console.log("SUBDOMAIN AVAILABLE", subdomain);
+          setDomainStatus("available");
+        } else {
+          console.log("SUBDOMAIN TAKEN", subdomain);
+          setDomainStatus("taken");
+        }
       } catch (error) {
         console.error("ERROR:", error);
         if (!currentRequest) {
@@ -62,7 +95,7 @@ const DomainSection = ({ form, onChange, onBlur }) => {
       currentRequest = false;
       window.clearTimeout(timeoutId);
     };
-  }, [subdomain]);
+  }, [subdomain, validationMessage]);
 
   return (
     <div className="form-section">
@@ -83,7 +116,7 @@ const DomainSection = ({ form, onChange, onBlur }) => {
             className="form-control domain-input"
             placeholder="yourcompany"
             value={subdomain}
-            onChange={(e) => onChange("subdomain", sanitizeSubdomain(e.target.value))}
+            onChange={(e) => onChange("subdomain", normalizeSubdomain(e.target.value))}
             onBlur={() => onBlur("subdomain")}
           />
           <span className="domain-suffix">.chemcore.app</span>
@@ -92,7 +125,9 @@ const DomainSection = ({ form, onChange, onBlur }) => {
         {subdomain ? (
           <div
             className={`domain-status ${
-              isChecking
+              validationMessage
+                ? "taken"
+                : isChecking
                 ? "checking"
                 : domainStatus === "taken"
                   ? "taken"
@@ -101,7 +136,12 @@ const DomainSection = ({ form, onChange, onBlur }) => {
                     : ""
             }`}
           >
-            {isChecking ? (
+            {validationMessage ? (
+              <>
+                <i className="bi bi-exclamation-circle-fill"></i>
+                {validationMessage}
+              </>
+            ) : isChecking ? (
               <>
                 <i className="bi bi-hourglass-split"></i>
                 {`${subdomain}.chemcore.app checking...`}

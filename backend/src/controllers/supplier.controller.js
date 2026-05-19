@@ -1,5 +1,40 @@
 import db from "../config/db.js";
+import { updateOnboardingStep } from "../utils/updateOnboardingStep.js";
 import { supplierSchema } from "../../../shared/validation/supplier.schema.js";
+
+export const getSupplier = async (req, res) => {
+  try {
+    const { companyId } = req.params;
+
+    if (!companyId || Number.isNaN(Number(companyId))) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid company ID",
+      });
+    }
+
+    const result = await db.query(
+      `SELECT *
+       FROM suppliers
+       WHERE company_id = $1
+       ORDER BY created_at DESC
+       LIMIT 1`,
+      [companyId],
+    );
+
+    return res.status(200).json({
+      success: true,
+      data: result.rows[0] || null,
+    });
+  } catch (error) {
+    console.error("Supplier Fetch Error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Server error",
+    });
+  }
+};
 
 export const createSupplier = async (req, res) => {
   const client = await db.connect();
@@ -52,6 +87,8 @@ export const createSupplier = async (req, res) => {
         data.notes,
       ],
     );
+
+    await updateOnboardingStep(companyId, 6);
 
     return res.status(200).json({
       success: true,

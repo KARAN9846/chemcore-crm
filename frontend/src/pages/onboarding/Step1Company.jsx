@@ -10,11 +10,10 @@ import RegistrationSection from "../../components/onboarding/form/RegistrationSe
 import AddressSection from "../../components/onboarding/form/AddressSection";
 import ContactSection from "../../components/onboarding/form/ContactSection";
 import FormActions from "../../components/onboarding/form/FormActions";
+import { getCompany } from "../../api/onboardingHydration.api";
 import { useOnboarding } from "../../context/useOnboarding";
-import {
-  ONBOARDING_KEYS,
-  readOnboardingCompanyId,
-} from "../../utils/onboardingStorage";
+import { ONBOARDING_KEYS } from "../../utils/onboardingStorage";
+import { getCompanyId } from "../../utils/company";
 import { showError } from "../../utils/toast";
 import {
   companyFormFieldMap,
@@ -81,36 +80,101 @@ const validateFormData = (formData) => {
   }, {});
 };
 
+const mapCompanyResponseToForm = (company = {}) => ({
+  companyName: company.company_name || "",
+  companyType: company.company_type || "",
+  description: company.description || "",
+  gstNumber: company.gst_number || "",
+  iecCode: company.iec_code || "",
+  panNumber: company.pan_number || "",
+  yearEstablished: company.year_established || "",
+  address: company.address || "",
+  address2: company.address2 || "",
+  city: company.city || "",
+  state: company.state || "",
+  pincode: company.pincode || "",
+  country: company.country || "",
+  currency: company.currency || "",
+  email: company.contact_email || "",
+  phone: company.contact_phone || "",
+  website: company.website || "",
+  timezone: company.timezone || "",
+});
+
 const Step1Company = () => {
   const navigate = useNavigate();
-  const { companyId, setCompanyId, setCurrentStep } = useOnboarding();
+  const { setCompanyId, setCurrentStep, setOnboardingData } = useOnboarding();
   const [formDataState, setFormDataState] = useState({});
   const [logoFile, setLogoFile] = useState(null);
   const [errors, setErrors] = useState({});
   const [touched, setTouched] = useState({});
   const [loading, setLoading] = useState(false);
+  const [hydrating, setHydrating] = useState(true);
   const [draftHydrated, setDraftHydrated] = useState(false);
   const [submitError, setSubmitError] = useState("");
 
   useEffect(() => {
-    const savedDraft = localStorage.getItem(STEP_1_DRAFT_KEY);
+    let isMounted = true;
 
-    if (savedDraft) {
+    const hydrateCompany = async () => {
+      console.log("HYDRATION START");
+
+      let savedDraft = null;
+
       try {
-        setFormDataState(JSON.parse(savedDraft));
+        const rawDraft = localStorage.getItem(STEP_1_DRAFT_KEY);
+
+        if (rawDraft) {
+          savedDraft = JSON.parse(rawDraft);
+        }
       } catch (error) {
         console.error("ERROR:", error);
         localStorage.removeItem(STEP_1_DRAFT_KEY);
       }
-    }
 
-    const savedStep = Number(localStorage.getItem(ONBOARDING_KEYS.STEP));
-    if (!Number.isFinite(savedStep) || savedStep < 1) {
-      setCurrentStep(1);
-    }
+      try {
+        const activeCompanyId = getCompanyId();
 
-    setDraftHydrated(true);
-  }, [setCurrentStep]);
+        if (activeCompanyId) {
+          const response = await getCompany(activeCompanyId);
+          const company = response?.data || null;
+
+          console.log("FETCHED DATA:", company);
+
+          if (isMounted && company) {
+            console.log("SETTING FORM STATE");
+            setFormDataState(mapCompanyResponseToForm(company));
+            return;
+          }
+        }
+
+        console.log("FETCHED DATA:", null);
+
+        if (isMounted && savedDraft) {
+          console.log("SETTING FORM STATE");
+          setFormDataState(savedDraft);
+        }
+      } catch (error) {
+        console.error("Company hydration error:", error);
+
+        if (isMounted && savedDraft) {
+          console.log("SETTING FORM STATE");
+          setFormDataState(savedDraft);
+        }
+      } finally {
+        if (isMounted) {
+          setDraftHydrated(true);
+          setHydrating(false);
+        }
+      }
+    };
+
+    hydrateCompany();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   useEffect(() => {
     if (!draftHydrated) {
@@ -174,13 +238,18 @@ const Step1Company = () => {
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
+    e?.preventDefault();
+    e?.stopPropagation();
+    console.log("STEP1 BUTTON CLICK HANDLER");
 
     if (loading) {
+      console.log("STEP1 SUBMIT BLOCKED: loading=true");
       return;
     }
 
+    console.log("STEP1 VALIDATION START");
     const nextErrors = validateFormData(formDataState);
+    console.log("STEP1 VALIDATION RESULT:", nextErrors);
 
     setTouched((prev) => ({
       ...prev,
@@ -189,16 +258,18 @@ const Step1Company = () => {
     setErrors(nextErrors);
 
     if (Object.keys(nextErrors).length > 0) {
+      console.log("STEP1 VALIDATION FAILED");
       setSubmitError("Please fill all required fields.");
       scrollToFirstInvalidField(nextErrors);
       showError("Please fill all required fields");
       return;
     }
 
+    console.log("STEP1 VALIDATION PASSED");
     setSubmitError("");
 
     const formData = new FormData();
-    const activeCompanyId = companyId || readOnboardingCompanyId();
+    const activeCompanyId = getCompanyId();
     const url = activeCompanyId
       ? `http://localhost:5000/api/onboarding/company/${activeCompanyId}`
       : "http://localhost:5000/api/onboarding/company";
@@ -234,8 +305,12 @@ const Step1Company = () => {
       safeAppend("logo", logoFile);
     }
 
+    let didNavigate = false;
+
     try {
       setLoading(true);
+      console.log("SAVE START");
+      console.log("STEP1 API SAVE START:", { method, url });
 
       const data = await saveCompany({
         url,
@@ -243,16 +318,36 @@ const Step1Company = () => {
         body: formData,
       });
 
-      if (data?.data?.companyId) {
-        setCompanyId(String(data.data.companyId));
+      console.log("SAVE SUCCESS");
+      console.log("STEP1 API SAVE RESPONSE:", data);
+
+      const savedCompanyId =
+        data?.companyId || data?.data?.companyId || data?.data?.id || data?.id;
+
+      if (!savedCompanyId) {
+        throw new Error("Company ID missing after save");
       }
 
-      localStorage.setItem(ONBOARDING_KEYS.STEP, "2");
+      localStorage.setItem("companyId", String(savedCompanyId));
+      console.log("ACTIVE COMPANY ID:", getCompanyId());
+      setCompanyId(String(savedCompanyId));
+      setOnboardingData((prev) => ({
+        ...prev,
+        companyId: String(savedCompanyId),
+      }));
       setCurrentStep(2);
+      localStorage.setItem(ONBOARDING_KEYS.STEP, "2");
       localStorage.removeItem(STEP_1_DRAFT_KEY);
-      console.log("SUCCESS:", data);
+      didNavigate = true;
+      console.log("SAVE COMPLETE");
+      console.log("NAVIGATE START");
+      console.log("STEP1 NAVIGATE STEP2", {
+        to: "/onboarding/step2",
+        savedCompanyId,
+      });
       navigate("/onboarding/step2");
     } catch (error) {
+      console.log("STEP1 API SAVE ERROR:", error);
       const backendErrors = (
         (error.response && error.response.data?.errors) ||
         []
@@ -278,20 +373,26 @@ const Step1Company = () => {
         scrollToFirstInvalidField(backendErrors);
       }
 
-      const message = !error.response
-        ? "Network error. Please check your internet connection."
-        : error?.response?.data?.message ||
-          "Something went wrong. Please try again.";
+      const message = error?.response
+        ? error.response.data?.message || "Something went wrong. Please try again."
+        : error.message ||
+          "Network error. Please check your internet connection.";
 
       setSubmitError(message);
       showError(message);
       console.error("ERROR:", error);
     } finally {
-      setLoading(false);
+      if (!didNavigate) {
+        setLoading(false);
+      }
     }
   };
 
   const hasErrors = Object.keys(errors).length > 0;
+
+  if (hydrating) {
+    return null;
+  }
 
   return (
     <div className="step1">
@@ -302,7 +403,16 @@ const Step1Company = () => {
         <div className="form-container">
           <StepHeader />
 
-          <form noValidate onSubmit={handleSubmit}>
+          <form
+            noValidate
+            autoComplete="off"
+            onSubmit={(event) => {
+              console.log("FORM SUBMIT");
+              console.log("STEP1 FORM SUBMIT EVENT");
+              event.preventDefault();
+              event.stopPropagation();
+            }}
+          >
             {hasErrors ? (
               <div
                 className="form-error-summary"
@@ -360,7 +470,7 @@ const Step1Company = () => {
               clearFieldError={clearFieldError}
             />
 
-            <FormActions loading={loading} />
+            <FormActions loading={loading} onContinue={handleSubmit} />
           </form>
         </div>
       </div>

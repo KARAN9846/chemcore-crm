@@ -1,11 +1,25 @@
 import { useNavigate } from "react-router-dom";
 
-const FormActions = ({ loading }) => {
+const FormActions = ({ loading, onBack, onContinue }) => {
   const navigate = useNavigate();
 
   return (
     <div className="form-actions">
-      <button type="button" className="btn-back" onClick={() => navigate("/")}>
+      <button
+        type="button"
+        className="btn-back"
+        onClick={(event) => {
+          event.preventDefault();
+          event.stopPropagation();
+
+          if (onBack) {
+            onBack(event);
+            return;
+          }
+
+          navigate("/");
+        }}
+      >
         <i className="bi bi-arrow-left"></i> Back
       </button>
 
@@ -14,7 +28,15 @@ const FormActions = ({ loading }) => {
         Progress auto-saved
       </div>
 
-      <button type="submit" className="btn-next" disabled={loading}>
+      <button
+        type="button"
+        className="btn-next"
+        onClick={(event) => {
+          console.log("BUTTON CLICK");
+          onContinue?.(event);
+        }}
+        disabled={loading}
+      >
         {loading ? (
           <>
             <span className="btn-spinner" aria-hidden="true"></span>

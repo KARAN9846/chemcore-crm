@@ -1,3 +1,5 @@
+import { getCompanyId } from "./company";
+
 export const ONBOARDING_KEYS = {
   DATA: "onboardingData",
   STEP: "onboardingStep",
@@ -9,7 +11,11 @@ export const ONBOARDING_KEYS = {
 };
 
 export const clearOnboardingStorage = () => {
-  Object.values(ONBOARDING_KEYS).forEach((key) => {
+  Object.entries(ONBOARDING_KEYS).forEach(([name, key]) => {
+    if (name === "LEGACY_COMPANY") {
+      return;
+    }
+
     localStorage.removeItem(key);
   });
 };
@@ -25,6 +31,4 @@ export const clearCompanyOnboarding = (companyId) => {
 };
 
 export const readOnboardingCompanyId = () =>
-  localStorage.getItem(ONBOARDING_KEYS.COMPANY) ||
-  localStorage.getItem(ONBOARDING_KEYS.LEGACY_COMPANY) ||
-  null;
+  getCompanyId() || localStorage.getItem(ONBOARDING_KEYS.COMPANY) || null;

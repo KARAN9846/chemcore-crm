@@ -1,4 +1,5 @@
 import pool from "../config/db.js";
+import { updateOnboardingStep } from "../utils/updateOnboardingStep.js";
 import {
   brandingSchema,
   normalizeBrandingInput,
@@ -180,6 +181,11 @@ export const saveBranding = async (req, res) => {
         ],
       );
     }
+
+    console.log("BRANDING SAVE COMPLETE");
+    console.log("UPDATING STEP TO:", 3);
+    console.log("COMPANY ID:", companyId);
+    await updateOnboardingStep(companyId, 3);
 
     return res.status(200).json({
       success: true,

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import TopBar from "../../components/layout/TopBar";
@@ -7,7 +7,11 @@ import AddChemicalRow from "../../components/onboarding/chemicals/AddChemicalRow
 import ChemicalSuggestions from "../../components/onboarding/chemicals/ChemicalSuggestions";
 import ChemicalTable from "../../components/onboarding/chemicals/ChemicalTable";
 import { saveChemicals } from "../../api/chemical.api";
+import { advanceOnboardingStep } from "../../api/onboarding.api";
+import { getChemicals } from "../../api/onboardingHydration.api";
 import { useOnboarding } from "../../context/useOnboarding";
+import { getCompanyId } from "../../utils/company";
+import { ONBOARDING_KEYS } from "../../utils/onboardingStorage";
 import { showError, showLoading, updateToast } from "../../utils/toast";
 
 const CHEMICAL_SUGGESTIONS = [
@@ -110,11 +114,64 @@ const createEmptyChemical = () => ({
 
 const Step4Chemicals = () => {
   const navigate = useNavigate();
-  const { companyId, setOnboardingChemicals } = useOnboarding();
+  const { setCurrentStep, setOnboardingChemicals } = useOnboarding();
   const [chemicals, setChemicals] = useState([]);
   const [newChemical, setNewChemical] = useState(createEmptyChemical);
   const [nameError, setNameError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [hydrating, setHydrating] = useState(true);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const hydrateChemicals = async () => {
+      console.log("HDRATING STEP 4");
+      setHydrating(true);
+
+      try {
+        const activeCompanyId = getCompanyId();
+
+        if (!activeCompanyId) {
+          return;
+        }
+
+        const response = await getChemicals(activeCompanyId);
+        const savedChemicals = Array.isArray(response?.data)
+          ? response.data
+          : [];
+
+        console.log("FETCHED DATA:", savedChemicals);
+
+        if (isMounted && savedChemicals.length > 0) {
+          console.log("SETTING FORM STATE");
+          const hydratedChemicals = savedChemicals.map((chemical) => ({
+            id: chemical.id,
+            name: chemical.name || "",
+            formula: chemical.formula || "",
+            category: chemical.category || "",
+            hsCode: chemical.hs_code || "",
+            unit: chemical.unit || "MT",
+            icon: "\u2697\uFE0F",
+          }));
+
+          setChemicals(hydratedChemicals);
+          setOnboardingChemicals(hydratedChemicals);
+        }
+      } catch (error) {
+        console.error("Chemical hydration error:", error);
+      } finally {
+        if (isMounted) {
+          setHydrating(false);
+        }
+      }
+    };
+
+    hydrateChemicals();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [setOnboardingChemicals]);
 
   const addChemical = (chemical) => {
     const exists = chemicals.some(
@@ -181,13 +238,24 @@ const Step4Chemicals = () => {
     setNameError("");
   };
 
-  const handleContinue = async () => {
+  const handleContinue = async (event) => {
+    console.log("BUTTON CLICK");
+    event?.preventDefault();
+    event?.stopPropagation();
+
+    if (loading) {
+      return;
+    }
+
     if (chemicals.length === 0) {
       showError("Please add at least one chemical before continuing.");
       return;
     }
 
-    if (!companyId) {
+    const activeCompanyId = getCompanyId();
+    console.log("ACTIVE COMPANY ID:", activeCompanyId);
+
+    if (!activeCompanyId) {
       showError("Company ID missing");
       return;
     }
@@ -203,24 +271,74 @@ const Step4Chemicals = () => {
 
     try {
       setLoading(true);
+      console.log("SAVE START");
 
-      const res = await saveChemicals(companyId, payload);
+      const saveRes = await saveChemicals(activeCompanyId, payload);
 
-      if (res.success) {
-        setOnboardingChemicals(chemicals);
-        updateToast(toastId, "Chemicals saved successfully", "success");
-        navigate("/onboarding/step5");
-        return;
+      if (saveRes?.success === false) {
+        throw new Error(saveRes.message || "Failed to save chemicals.");
       }
 
-      updateToast(toastId, res.message || "Failed to save", "error");
+      console.log("SAVE COMPLETE");
+      setOnboardingChemicals(chemicals);
+      localStorage.setItem(ONBOARDING_KEYS.STEP, "5");
+      setCurrentStep(5);
+      updateToast(toastId, "Chemicals saved successfully", "success");
+      console.log("NAVIGATE START");
+      navigate("/onboarding/step5");
     } catch (err) {
       console.error("Chemical save error:", err);
-      updateToast(toastId, "Server error. Please try again.", "error");
-    } finally {
+      updateToast(
+        toastId,
+        err.message || "Server error. Please try again.",
+        "error",
+      );
       setLoading(false);
     }
   };
+
+  const skipStep = async (event) => {
+    console.log("BUTTON CLICK");
+    event?.preventDefault();
+    event?.stopPropagation();
+
+    if (loading) {
+      return;
+    }
+
+    const activeCompanyId = getCompanyId();
+
+    if (!activeCompanyId) {
+      showError("Company ID missing");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      console.log("SAVE START");
+
+      const skipRes = await advanceOnboardingStep(activeCompanyId, 5);
+
+      if (skipRes?.success === false) {
+        throw new Error(skipRes.message || "Unable to skip right now.");
+      }
+
+      console.log("SAVE COMPLETE");
+      setOnboardingChemicals(chemicals);
+      localStorage.setItem(ONBOARDING_KEYS.STEP, "5");
+      setCurrentStep(5);
+      console.log("NAVIGATE START");
+      navigate("/onboarding/step5");
+    } catch (error) {
+      console.error("Chemical skip error:", error);
+      showError("Unable to skip right now");
+      setLoading(false);
+    }
+  };
+
+  if (hydrating) {
+    return null;
+  }
 
   return (
     <div className="step4">
@@ -286,11 +404,7 @@ const Step4Chemicals = () => {
             <span className="skip-link">
               <a
                 href="/onboarding/step5"
-                onClick={(event) => {
-                  event.preventDefault();
-                  setOnboardingChemicals(chemicals);
-                  navigate("/onboarding/step5");
-                }}
+                onClick={skipStep}
               >
                 Skip for now →
               </a>

@@ -1,6 +1,40 @@
 import crypto from "crypto";
 import db from "../config/db.js";
+import { updateOnboardingStep } from "../utils/updateOnboardingStep.js";
 import { teamInviteSchema } from "../../../shared/validation/team.schema.js";
+
+export const getTeamMembers = async (req, res) => {
+  try {
+    const { companyId } = req.params;
+
+    if (!companyId || Number.isNaN(Number(companyId))) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid company ID",
+      });
+    }
+
+    const result = await db.query(
+      `SELECT id, name, email, role, status
+       FROM users
+       WHERE company_id = $1
+       ORDER BY id ASC`,
+      [companyId],
+    );
+
+    return res.status(200).json({
+      success: true,
+      data: result.rows,
+    });
+  } catch (error) {
+    console.error("Team Fetch Error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Server error",
+    });
+  }
+};
 
 export const inviteTeam = async (req, res) => {
   const client = await db.connect();
@@ -38,8 +72,6 @@ export const inviteTeam = async (req, res) => {
     await client.query("BEGIN");
 
     for (const member of members) {
-      console.log("Inviting:", member.email);
-
       const existing = await client.query(
         "SELECT id FROM users WHERE email=$1 AND company_id=$2",
         [member.email, companyId],
@@ -67,6 +99,7 @@ export const inviteTeam = async (req, res) => {
     }
 
     await client.query("COMMIT");
+    await updateOnboardingStep(companyId, 4);
 
     return res.status(200).json({
       success: true,

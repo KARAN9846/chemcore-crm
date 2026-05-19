@@ -1,0 +1,46 @@
+export const initialLeadFormState = {
+  contact: {
+    firstName: "",
+    lastName: "",
+    companyName: "",
+    designation: "",
+    email: "",
+    phone: "",
+    country: "",
+    city: "",
+  },
+  chemicalRequirements: {
+    chemicals: [],
+    gradeSpecification: "",
+    quantity: "",
+    unit: "MT",
+    frequency: "One-time",
+    pricePerUnit: "",
+    currency: "USD",
+    estimatedValue: "",
+  },
+  tradeTerms: {
+    incoterms: [],
+    paymentTerms: [],
+    destinationPort: "",
+    packaging: "",
+  },
+  sourceAssignment: {
+    source: "",
+    sourceDetail: "",
+    assignedTo: "Priya Sharma",
+    initialStage: "new",
+    initialScore: "warm",
+  },
+  followUp: {
+    date: "",
+    time: "",
+    via: "Call",
+    notes: "",
+  },
+  metadata: {
+    mode: "create",
+    draftId: null,
+    restoredFromDraft: false,
+  },
+};

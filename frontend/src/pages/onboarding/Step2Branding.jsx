@@ -9,13 +9,12 @@ import WorkspaceSection from "../../components/branding/WorkspaceSection";
 import DomainSection from "../../components/branding/DomainSection";
 import EmailSection from "../../components/branding/EmailSection";
 import BrandingPreview from "../../components/branding/BrandingPreview";
+import { getBranding } from "../../api/onboardingHydration.api";
 import { useOnboarding } from "../../context/useOnboarding";
+import { getCompanyId } from "../../utils/company";
 import { ONBOARDING_KEYS } from "../../utils/onboardingStorage";
 import { showError } from "../../utils/toast";
-import {
-  getBranding,
-  saveBranding,
-} from "../../lib/api/saveBranding";
+import { saveBranding } from "../../lib/api/saveBranding";
 import {
   brandingSchema,
   normalizeBrandingInput,
@@ -69,30 +68,29 @@ const validateBrandingForm = (form) => {
 
 const Step2Branding = () => {
   const navigate = useNavigate();
-  const { companyId, currentStep, isHydrated, setCurrentStep } =
-    useOnboarding();
+  const { isHydrated, setCurrentStep } = useOnboarding();
   const [form, setForm] = useState(DEFAULT_FORM);
   const [errors, setErrors] = useState({});
   const [touched, setTouched] = useState({});
   const [loading, setLoading] = useState(false);
   const [submitError, setSubmitError] = useState("");
   const [draftHydrated, setDraftHydrated] = useState(false);
-  const [isFetchingBranding, setIsFetchingBranding] = useState(true);
+  const [hydrating, setHydrating] = useState(true);
+
+  useEffect(() => {
+    console.log("STEP2 MOUNT");
+  }, []);
 
   useEffect(() => {
     if (!isHydrated) {
       return;
     }
 
-    if (!companyId || currentStep < 2) {
-      navigate("/onboarding/step1", { replace: true });
-      return;
-    }
-
     let isMounted = true;
 
     const hydrateBranding = async () => {
-      setIsFetchingBranding(true);
+      console.log("HDRATING STEP 2");
+      setHydrating(true);
 
       let savedDraft = null;
 
@@ -108,15 +106,23 @@ const Step2Branding = () => {
       }
 
       try {
-        const response = await getBranding(companyId);
-        const brandingData = response?.data?.data || null;
-        console.log("API DATA:", brandingData);
-        console.log("DRAFT DATA:", savedDraft);
+        const activeCompanyId = getCompanyId();
+        console.log("ACTIVE COMPANY ID:", activeCompanyId);
+        if (!activeCompanyId) {
+          return;
+        }
+
+        const response = await getBranding(activeCompanyId);
+        const brandingData = response?.data || null;
+
+        console.log("FETCHED DATA:", brandingData);
 
         if (isMounted) {
           if (brandingData) {
+            console.log("SETTING FORM STATE");
             setForm(mapBrandingResponseToForm(brandingData));
           } else if (savedDraft) {
+            console.log("SETTING FORM STATE");
             setForm(savedDraft);
           } else {
             setForm(DEFAULT_FORM);
@@ -136,7 +142,7 @@ const Step2Branding = () => {
       } finally {
         if (isMounted) {
           setDraftHydrated(true);
-          setIsFetchingBranding(false);
+          setHydrating(false);
         }
       }
     };
@@ -146,7 +152,7 @@ const Step2Branding = () => {
     return () => {
       isMounted = false;
     };
-  }, [companyId, currentStep, isHydrated, navigate]);
+  }, [isHydrated]);
 
   useEffect(() => {
     if (!draftHydrated) {
@@ -222,7 +228,8 @@ const Step2Branding = () => {
   };
 
   const handleSubmit = async (event) => {
-    event.preventDefault();
+    event?.preventDefault();
+    event?.stopPropagation();
 
     if (loading) {
       return;
@@ -246,12 +253,32 @@ const Step2Branding = () => {
     try {
       setLoading(true);
       setSubmitError("");
+      console.log("SAVE START");
 
-      await saveBranding(companyId, normalizeBrandingInput(form));
+      const activeCompanyId = getCompanyId();
+      console.log("ACTIVE COMPANY ID:", activeCompanyId);
 
+      if (!activeCompanyId) {
+        showError("Company ID missing");
+        setLoading(false);
+        return;
+      }
+
+      const saveRes = await saveBranding(
+        activeCompanyId,
+        normalizeBrandingInput(form),
+      );
+
+      if (saveRes?.success === false) {
+        throw new Error(saveRes.message || "Unable to save branding.");
+      }
+
+      console.log("SAVE COMPLETE");
+      console.log("STEP2 SAVE SUCCESS");
       localStorage.removeItem(STEP_2_DRAFT_KEY);
       localStorage.setItem(ONBOARDING_KEYS.STEP, "3");
       setCurrentStep(3);
+      console.log("NAVIGATE START");
       navigate("/onboarding/step3");
     } catch (error) {
       const backendErrors = (
@@ -276,20 +303,20 @@ const Step2Branding = () => {
         scrollToFirstInvalidField(backendErrors);
       }
 
-      const message = !error.response
-        ? "Network error. Please check your internet connection."
-        : error?.response?.data?.message ||
-          "Something went wrong. Please try again.";
+      const message = error?.response
+        ? error.response.data?.message ||
+          "Something went wrong. Please try again."
+        : error.message ||
+          "Network error. Please check your internet connection.";
 
       setSubmitError(message);
       showError(message);
       console.error("ERROR:", error);
-    } finally {
       setLoading(false);
     }
   };
 
-  if (!isHydrated || !companyId || currentStep < 2 || isFetchingBranding) {
+  if (!isHydrated || hydrating) {
     return null;
   }
 
@@ -313,7 +340,14 @@ const Step2Branding = () => {
             </p>
           </div>
 
-          <form noValidate onSubmit={handleSubmit}>
+          <form
+            noValidate
+            onSubmit={(event) => {
+              console.log("FORM SUBMIT");
+              event.preventDefault();
+              event.stopPropagation();
+            }}
+          >
             {Object.keys(errors).length > 0 ? (
               <div
                 className="form-error-summary"
@@ -364,7 +398,15 @@ const Step2Branding = () => {
               onBlur={markTouched}
             />
 
-            <FormActions loading={loading} />
+            <FormActions
+              loading={loading}
+              onBack={() => {
+                console.log("STEP2 BACK CLICK");
+                console.log("STEP2 BACK NAVIGATE");
+                navigate("/onboarding/step1");
+              }}
+              onContinue={handleSubmit}
+            />
           </form>
         </div>
 

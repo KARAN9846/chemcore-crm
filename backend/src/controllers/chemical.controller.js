@@ -1,5 +1,39 @@
 import db from "../config/db.js";
+import { updateOnboardingStep } from "../utils/updateOnboardingStep.js";
 import { chemicalBulkSchema } from "../../../shared/validation/chemical.schema.js";
+
+export const getChemicals = async (req, res) => {
+  try {
+    const { companyId } = req.params;
+
+    if (!companyId || Number.isNaN(Number(companyId))) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid company ID",
+      });
+    }
+
+    const result = await db.query(
+      `SELECT id, name, formula, category, hs_code, unit
+       FROM chemicals
+       WHERE company_id = $1
+       ORDER BY id ASC`,
+      [companyId],
+    );
+
+    return res.status(200).json({
+      success: true,
+      data: result.rows,
+    });
+  } catch (error) {
+    console.error("Chemical Fetch Error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Server error",
+    });
+  }
+};
 
 export const saveChemicals = async (req, res) => {
   const client = await db.connect();
@@ -53,8 +87,6 @@ export const saveChemicals = async (req, res) => {
     const inserted = [];
 
     for (const chem of chemicals) {
-      console.log("Saving chemical:", chem.name);
-
       const result = await client.query(
         `INSERT INTO chemicals 
         (company_id, name, formula, category, hs_code, unit)
@@ -74,6 +106,7 @@ export const saveChemicals = async (req, res) => {
     }
 
     await client.query("COMMIT");
+    await updateOnboardingStep(companyId, 5);
 
     return res.status(200).json({
       success: true,
