@@ -1,3 +1,21 @@
+# ENV
 .env
 frontend/.env
 backend/.env
+
+# NODE MODULES
+node_modules
+frontend/node_modules
+backend/node_modules
+
+# BUILD FILES
+dist
+frontend/dist
+backend/dist
+
+# UPLOADS
+uploads
+backend/uploads
+
+# LOGS
+*.log
