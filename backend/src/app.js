@@ -16,6 +16,7 @@ const app = express(); // FIRST create app
 const allowedOrigins = [
   "http://localhost:5173",
   "https://chemcore-crm.vercel.app",
+  "https://chemcore-crm-git-dev-karan-jarias-projects.vercel.app",
   process.env.FRONTEND_URL,
 ].filter(Boolean);
 
