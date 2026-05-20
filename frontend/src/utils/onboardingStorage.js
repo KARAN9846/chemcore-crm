@@ -10,9 +10,9 @@ export const ONBOARDING_KEYS = {
   LEGACY_COMPANY: "companyId",
 };
 
-export const clearOnboardingStorage = () => {
+export const clearOnboardingStorage = ({ preserveCompanyId = false } = {}) => {
   Object.entries(ONBOARDING_KEYS).forEach(([name, key]) => {
-    if (name === "LEGACY_COMPANY") {
+    if (preserveCompanyId && name === "LEGACY_COMPANY") {
       return;
     }
 

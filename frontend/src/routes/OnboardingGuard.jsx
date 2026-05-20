@@ -3,8 +3,12 @@ import { Navigate, useLocation } from "react-router-dom";
 
 import { getOnboardingStatus } from "../api/onboarding.api";
 import { getCompanyId } from "../utils/company";
+import { clearOnboardingStorage } from "../utils/onboardingStorage";
 
 const getStepPath = (step) => `/onboarding/step${step}`;
+const isMissingCompanyError = (error) =>
+  error.response?.status === 404 &&
+  error.response?.data?.message === "Company not found";
 
 const OnboardingGuard = ({ step, children }) => {
   const location = useLocation();
@@ -49,21 +53,24 @@ const OnboardingGuard = ({ step, children }) => {
           return;
         }
 
-        if (nextStatus) {
-          const currentStep = Number(nextStatus.onboarding_step) || 1;
-          const targetPath = getStepPath(currentStep);
-
-          console.log("GUARD CHECK");
-          console.log("GUARD STEP VALUE:", currentStep);
-          console.log("LIVE PATHNAME:", latestPathnameRef.current);
-          console.log("ALLOWED PATH:", targetPath);
-        }
-
         setStatusState({
           pathname: requestPathname,
           data: nextStatus,
         });
       } catch (error) {
+        if (isMissingCompanyError(error)) {
+          clearOnboardingStorage();
+
+          if (isMounted && latestPathnameRef.current === requestPathname) {
+            setStatusState({
+              pathname: requestPathname,
+              data: null,
+            });
+          }
+
+          return;
+        }
+
         console.error("Onboarding status error:", error);
       } finally {
         if (
@@ -91,22 +98,13 @@ const OnboardingGuard = ({ step, children }) => {
 
   if (!status) {
     if (step === 1 || livePathname === "/onboarding/step1") {
-      console.log("LIVE PATHNAME:", livePathname);
-      console.log("ALLOWED PATH:", "/onboarding/step1");
-      console.log("ALLOWING CURRENT ROUTE:", livePathname);
       return children;
     }
 
-    console.log("LIVE PATHNAME:", livePathname);
-    console.log("ALLOWED PATH:", "/onboarding/step1");
-    console.log("REDIRECTING:", "/onboarding/step1");
     return <Navigate to="/onboarding/step1" replace />;
   }
 
   if (status.onboarding_completed && !location.state?.justCompleted) {
-    console.log("LIVE PATHNAME:", livePathname);
-    console.log("ALLOWED PATH:", "/dashboard");
-    console.log("REDIRECTING:", "/dashboard");
     return <Navigate to="/dashboard" replace />;
   }
 
@@ -115,21 +113,12 @@ const OnboardingGuard = ({ step, children }) => {
 
   if (step > activeStep) {
     if (livePathname === allowedPath) {
-      console.log("LIVE PATHNAME:", livePathname);
-      console.log("ALLOWED PATH:", allowedPath);
-      console.log("ALLOWING CURRENT ROUTE:", livePathname);
       return children;
     }
 
-    console.log("LIVE PATHNAME:", livePathname);
-    console.log("ALLOWED PATH:", allowedPath);
-    console.log("REDIRECTING:", allowedPath);
     return <Navigate to={allowedPath} replace />;
   }
 
-  console.log("LIVE PATHNAME:", livePathname);
-  console.log("ALLOWED PATH:", allowedPath);
-  console.log("ALLOWING CURRENT ROUTE:", livePathname);
   return children;
 };
 

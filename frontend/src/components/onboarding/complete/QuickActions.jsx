@@ -10,7 +10,7 @@ const QuickActions = ({ navigate }) => {
         <button
           type="button"
           className="qs-card"
-          onClick={() => navigate("/leads")}
+          onClick={() => navigate("/dashboard/leads")}
         >
           <div className="qs-icon">
             <i className="bi bi-people-fill"></i>
@@ -22,7 +22,7 @@ const QuickActions = ({ navigate }) => {
         <button
           type="button"
           className="qs-card"
-          onClick={() => navigate("/quotations")}
+          onClick={() => navigate("/dashboard/quotations")}
         >
           <div className="qs-icon">
             <i className="bi bi-file-earmark-text-fill"></i>
@@ -34,7 +34,7 @@ const QuickActions = ({ navigate }) => {
         <button
           type="button"
           className="qs-card"
-          onClick={() => navigate("/suppliers")}
+          onClick={() => navigate("/dashboard/suppliers")}
         >
           <div className="qs-icon">
             <i className="bi bi-building-fill"></i>
@@ -46,7 +46,7 @@ const QuickActions = ({ navigate }) => {
         <button
           type="button"
           className="qs-card"
-          onClick={() => navigate("/settings")}
+          onClick={() => navigate("/dashboard/settings")}
         >
           <div className="qs-icon">
             <i className="bi bi-gear-fill"></i>

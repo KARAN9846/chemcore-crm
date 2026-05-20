@@ -1,5 +1,5 @@
 import dotenv from "dotenv";
-dotenv.config();
+dotenv.config({ path: ".env", override: true, quiet: true });
 
 import app from "./app.js";
 

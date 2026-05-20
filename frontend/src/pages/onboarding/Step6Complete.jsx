@@ -40,7 +40,6 @@ const Step6Complete = () => {
         console.error("Fetch error:", err);
       } finally {
         setLoading(false);
-        clearOnboardingStorage();
       }
     };
 
@@ -50,15 +49,22 @@ const Step6Complete = () => {
   const goToDashboard = async () => {
     const activeCompanyId = getCompanyId();
 
-    if (!activeCompanyId || completing) {
+    console.log("Go to Dashboard clicked", { activeCompanyId, completing });
+
+    if (completing) {
       return;
     }
 
     try {
       setCompleting(true);
-      await completeOnboarding(activeCompanyId);
-      clearOnboardingStorage();
-      navigate("/dashboard");
+
+      if (activeCompanyId) {
+        await completeOnboarding(activeCompanyId);
+      }
+
+      clearOnboardingStorage({ preserveCompanyId: true });
+      console.log("Navigating to dashboard");
+      navigate("/dashboard", { replace: true });
     } catch (error) {
       console.error("Completion error:", error);
     } finally {

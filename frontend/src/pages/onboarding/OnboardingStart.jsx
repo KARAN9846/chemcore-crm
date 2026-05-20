@@ -12,6 +12,10 @@ import { useOnboarding } from "../../context/useOnboarding";
 import { getCompanyId } from "../../utils/company";
 import { clearOnboardingStorage } from "../../utils/onboardingStorage";
 
+const isMissingCompanyError = (error) =>
+  error.response?.status === 404 &&
+  error.response?.data?.message === "Company not found";
+
 const OnboardingStart = () => {
   const navigate = useNavigate();
   const { setCompanyId, setCurrentStep, setOnboardingData } = useOnboarding();
@@ -38,7 +42,6 @@ const OnboardingStart = () => {
           return;
         }
 
-        console.log("ACTIVE ONBOARDING STEP:", status.onboarding_step);
         setCompanyId(String(status.companyId));
         setCurrentStep(status.onboarding_step);
 
@@ -51,6 +54,14 @@ const OnboardingStart = () => {
           replace: true,
         });
       } catch (error) {
+        if (isMissingCompanyError(error)) {
+          clearOnboardingStorage();
+          setCompanyId(null);
+          setCurrentStep(1);
+          setOnboardingData(null);
+          return;
+        }
+
         console.error("Onboarding resume error:", error);
       }
     };
