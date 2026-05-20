@@ -10,9 +10,9 @@ import {
   mapSystemHealth,
   mapTeamActivity,
 } from "./dashboardMapper";
+import { buildApiUrl } from "../../config/api";
 
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
-const DASHBOARD_ENDPOINT = `${API_BASE}/api/dashboard`;
+const DASHBOARD_ENDPOINT = buildApiUrl("/dashboard");
 
 const emptyDashboardData = {
   stats: [],
@@ -36,7 +36,9 @@ const normalizeDashboardResponse = (payload) => {
 
 export const getDashboardData = async () => {
   try {
-    const response = await fetch(DASHBOARD_ENDPOINT);
+    const response = await fetch(DASHBOARD_ENDPOINT, {
+      credentials: "include",
+    });
 
     if (!response.ok) {
       throw new Error(`Dashboard request failed with ${response.status}`);

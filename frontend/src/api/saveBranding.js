@@ -1,15 +1,18 @@
+import { buildApiUrl } from "../config/api";
+
 export const saveBranding = async ({ companyId, payload }) => {
   let response;
 
   try {
     response = await fetch(
-      `http://localhost:5000/api/onboarding/branding/${companyId}`,
+      buildApiUrl(`/onboarding/branding/${companyId}`),
       {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify(payload),
+        credentials: "include",
       },
     );
   } catch (error) {

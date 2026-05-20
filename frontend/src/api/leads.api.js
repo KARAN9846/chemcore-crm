@@ -1,31 +1,31 @@
 import api from "./axios";
 
 export const createLead = async (payload) => {
-  const response = await api.post("/api/leads", payload);
+  const response = await api.post("/leads", payload);
 
   return response.data;
 };
 
 export const getLeads = async (params) => {
-  const response = await api.get("/api/leads", { params });
+  const response = await api.get("/leads", { params });
 
   return response.data;
 };
 
 export const getLeadByPublicId = async (publicId, params) => {
-  const response = await api.get(`/api/leads/${publicId}`, { params });
+  const response = await api.get(`/leads/${publicId}`, { params });
 
   return response.data;
 };
 
 export const updateLead = async (publicId, payload) => {
-  const response = await api.patch(`/api/leads/${publicId}`, payload);
+  const response = await api.patch(`/leads/${publicId}`, payload);
 
   return response.data;
 };
 
 export const updateLeadFollowup = async (publicId, payload) => {
-  const response = await api.patch(`/api/leads/${publicId}/follow-up`, payload);
+  const response = await api.patch(`/leads/${publicId}/follow-up`, payload);
 
   return response.data;
 };

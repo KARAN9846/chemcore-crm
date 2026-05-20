@@ -1,7 +1,7 @@
 import api from "../../../api/axios";
 
 export const getLeadActivities = async (publicId, params) => {
-  const response = await api.get(`/api/leads/${publicId}/activities`, {
+  const response = await api.get(`/leads/${publicId}/activities`, {
     params,
   });
 
@@ -9,7 +9,7 @@ export const getLeadActivities = async (publicId, params) => {
 };
 
 export const createLeadActivity = async (publicId, payload) => {
-  const response = await api.post(`/api/leads/${publicId}/activities`, payload);
+  const response = await api.post(`/leads/${publicId}/activities`, payload);
 
   return response.data;
 };

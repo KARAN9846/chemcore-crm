@@ -8,10 +8,9 @@ import SetupSummary from "../../components/onboarding/complete/SetupSummary";
 import WorkspaceUrl from "../../components/onboarding/complete/WorkspaceUrl";
 import ProgressBar from "../../components/onboarding/layout/ProgressBar";
 import { completeOnboarding } from "../../api/onboarding.api";
+import { buildApiUrl } from "../../config/api";
 import { getCompanyId } from "../../utils/company";
 import { clearOnboardingStorage } from "../../utils/onboardingStorage";
-
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 const Step6Complete = () => {
   const navigate = useNavigate();
@@ -30,7 +29,9 @@ const Step6Complete = () => {
 
       try {
         console.log("ACTIVE COMPANY ID:", getCompanyId());
-        const res = await fetch(`${API_BASE}/api/onboarding/summary/${companyId}`);
+        const res = await fetch(buildApiUrl(`/onboarding/summary/${companyId}`), {
+          credentials: "include",
+        });
         const data = await res.json();
 
         if (data.success) {

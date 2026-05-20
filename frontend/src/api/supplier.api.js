@@ -2,7 +2,7 @@ import axios from "./axios";
 
 export const createSupplier = async (companyId, payload) => {
   try {
-    const res = await axios.post(`/api/supplier/${companyId}`, payload);
+    const res = await axios.post(`/supplier/${companyId}`, payload);
 
     return res.data;
   } catch (err) {

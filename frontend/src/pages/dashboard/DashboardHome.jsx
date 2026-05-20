@@ -56,7 +56,7 @@ const DashboardHome = () => {
 
     if (activeCompanyId) {
       try {
-        await api.post(`/api/dev/reset-onboarding/${activeCompanyId}`);
+        await api.post(`/dev/reset-onboarding/${activeCompanyId}`);
       } catch (error) {
         console.error("Dev onboarding reset failed:", error);
       }

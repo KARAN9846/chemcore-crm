@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { buildApiUrl } from "../../config/api";
 
 const normalizeSubdomain = (value) => value.toLowerCase();
 
@@ -22,8 +23,7 @@ const validateSubdomain = (value) => {
   return "";
 };
 
-const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
-const DOMAIN_CHECK_URL = `${BASE_URL}/api/domain/check`;
+const DOMAIN_CHECK_URL = buildApiUrl("/domain/check");
 
 const DomainSection = ({ form, onChange, onBlur }) => {
   const subdomain = normalizeSubdomain(form.subdomain || "");
@@ -63,6 +63,9 @@ const DomainSection = ({ form, onChange, onBlur }) => {
         console.log("SUBDOMAIN CHECK START", subdomain);
         const response = await fetch(
           `${DOMAIN_CHECK_URL}?name=${encodeURIComponent(subdomain)}`,
+          {
+            credentials: "include",
+          },
         );
         const data = await response.json();
 

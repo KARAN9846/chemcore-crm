@@ -271,8 +271,8 @@ const Step1Company = () => {
     const formData = new FormData();
     const activeCompanyId = getCompanyId();
     const url = activeCompanyId
-      ? `http://localhost:5000/api/onboarding/company/${activeCompanyId}`
-      : "http://localhost:5000/api/onboarding/company";
+      ? `/onboarding/company/${activeCompanyId}`
+      : "/onboarding/company";
     const method = activeCompanyId ? "PUT" : "POST";
     const validationPayload = getValidationPayload(formDataState);
 

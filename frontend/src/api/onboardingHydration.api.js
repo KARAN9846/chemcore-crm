@@ -1,26 +1,26 @@
 import axios from "./axios";
 
 export const getCompany = async (companyId) => {
-  const res = await axios.get(`/api/company/${companyId}`);
+  const res = await axios.get(`/company/${companyId}`);
   return res.data;
 };
 
 export const getBranding = async (companyId) => {
-  const res = await axios.get(`/api/branding/${companyId}`);
+  const res = await axios.get(`/branding/${companyId}`);
   return res.data;
 };
 
 export const getTeam = async (companyId) => {
-  const res = await axios.get(`/api/team/${companyId}`);
+  const res = await axios.get(`/team/${companyId}`);
   return res.data;
 };
 
 export const getChemicals = async (companyId) => {
-  const res = await axios.get(`/api/chemicals/${companyId}`);
+  const res = await axios.get(`/chemicals/${companyId}`);
   return res.data;
 };
 
 export const getSupplier = async (companyId) => {
-  const res = await axios.get(`/api/supplier/${companyId}`);
+  const res = await axios.get(`/supplier/${companyId}`);
   return res.data;
 };

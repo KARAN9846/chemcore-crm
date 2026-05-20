@@ -13,9 +13,26 @@ import leadRoutes from "./modules/leads/leads.routes.js";
 import quotationRoutes from "./modules/quotations/quotations.routes.js";
 
 const app = express(); // FIRST create app
+const allowedOrigins = [
+  "http://localhost:5173",
+  "https://chemcore-crm.vercel.app",
+  process.env.FRONTEND_URL,
+].filter(Boolean);
 
 // middlewares
-app.use(cors());
+app.use(
+  cors({
+    origin(origin, callback) {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+        return;
+      }
+
+      callback(new Error("Not allowed by CORS"));
+    },
+    credentials: true,
+  }),
+);
 app.use(express.json());
 
 // serve uploads

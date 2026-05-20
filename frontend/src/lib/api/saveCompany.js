@@ -1,10 +1,13 @@
+import { buildApiUrl } from "../../config/api";
+
 export const saveCompany = async ({ url, method, body }) => {
   let response;
 
   try {
-    response = await fetch(url, {
+    response = await fetch(buildApiUrl(url), {
       method,
       body,
+      credentials: "include",
     });
   } catch (error) {
     const networkError = new Error(
