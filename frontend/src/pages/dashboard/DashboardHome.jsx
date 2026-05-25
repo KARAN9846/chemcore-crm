@@ -89,17 +89,15 @@ const DashboardHome = () => {
         <RecentOrdersList orders={dashboardData.recentOrders} />
       </section>
 
-      {import.meta.env.DEV ? (
-        <section className="dashboard-dev-utility" aria-label="Development tools">
-          <button
-            type="button"
-            onClick={handleDevReset}
-            className="dashboard-reset-button"
-          >
-            Reset Onboarding
-          </button>
-        </section>
-      ) : null}
+      <section className="dashboard-dev-utility" aria-label="Development tools">
+        <button
+          type="button"
+          onClick={handleDevReset}
+          className="dashboard-reset-button"
+        >
+          Reset Onboarding
+        </button>
+      </section>
     </div>
   );
 };
