@@ -1,5 +1,6 @@
 import {
   createLead,
+  deleteLead,
   getLeadByPublicId,
   listLeadOptions,
   listLeads,
@@ -8,6 +9,7 @@ import {
 } from "./leads.service.js";
 import {
   validateCreateLeadPayload,
+  validateLeadDeleteQuery,
   validateLeadDetailQuery,
   validateLeadListQuery,
   validateLeadOptionsQuery,
@@ -77,10 +79,50 @@ export const listLeadsController = async (req, res) => {
     return res.status(200).json({
       success: true,
       data: result.data,
+      summary: result.summary,
       pagination: result.pagination,
     });
   } catch (error) {
     console.error("Lead List Error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Server error",
+    });
+  }
+};
+
+export const deleteLeadController = async (req, res) => {
+  try {
+    const validation = validateLeadDeleteQuery({
+      params: req.params,
+      query: req.query,
+    });
+
+    if (!validation.success) {
+      return res.status(400).json({
+        success: false,
+        message: "Lead delete query validation failed",
+        errors: validation.errors,
+      });
+    }
+
+    const result = await deleteLead(validation.data);
+
+    if (!result) {
+      return res.status(404).json({
+        success: false,
+        message: "Lead not found",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Lead deleted successfully",
+      data: result,
+    });
+  } catch (error) {
+    console.error("Lead Delete Error:", error);
 
     return res.status(500).json({
       success: false,

@@ -14,7 +14,11 @@ const TradeTermsSection = ({ data, errors = {}, onBlur, onInputChange }) => {
     `lead-form-control ${errors[field] ? "lead-form-control-invalid" : ""}`;
 
   return (
-    <QuotationSection icon="bi-file-earmark-text-fill" title="Trade Terms">
+    <QuotationSection
+      description="Commercial terms used on the client-facing quotation."
+      icon="bi-file-earmark-text-fill"
+      title="Trade Terms"
+    >
     <div className="row g-3">
       <div className="col-12">
         <label className="lead-form-label">

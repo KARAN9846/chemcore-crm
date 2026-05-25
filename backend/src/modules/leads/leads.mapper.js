@@ -107,6 +107,9 @@ export const mapLeadListResponse = (row = {}) => ({
   assignedTo: row.assigned_to,
   status: row.status,
   currentStage: row.current_stage,
+  source: row.source,
+  quantityRequired: row.quantity_required,
+  unit: row.unit,
   followupDate: row.followup_date,
   createdAt: row.created_at,
 });

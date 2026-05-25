@@ -29,3 +29,9 @@ export const updateLeadFollowup = async (publicId, payload) => {
 
   return response.data;
 };
+
+export const deleteLead = async (publicId, params) => {
+  const response = await api.delete(`/leads/${publicId}`, { params });
+
+  return response.data;
+};

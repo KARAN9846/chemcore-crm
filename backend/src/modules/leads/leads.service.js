@@ -152,6 +152,35 @@ const buildLeadFilters = (filters) => {
     where.push(`status = $${values.length}`);
   }
 
+  if (filters.chemical) {
+    values.push(filters.chemical);
+    where.push(`$${values.length} = ANY(chemical_names)`);
+  }
+
+  if (filters.country) {
+    values.push(filters.country);
+    where.push(`country = $${values.length}`);
+  }
+
+  if (filters.source) {
+    values.push(filters.source);
+    where.push(`source = $${values.length}`);
+  }
+
+  if (filters.owner) {
+    values.push(filters.owner);
+    where.push(`assigned_to = $${values.length}`);
+  }
+
+  if (filters.scoreLabel) {
+    values.push(filters.scoreLabel);
+    where.push(`score_label = $${values.length}`);
+  }
+
+  if (filters.followupDue) {
+    where.push("followup_date IS NOT NULL AND followup_date <= CURRENT_DATE");
+  }
+
   if (filters.dateFrom) {
     values.push(filters.dateFrom);
     where.push(`created_at::date >= $${values.length}`);
@@ -175,6 +204,40 @@ const buildLeadFilters = (filters) => {
   return {
     whereSql: where.join(" AND "),
     values,
+  };
+};
+
+const getLeadSummary = async (filters) => {
+  const { whereSql, values } = buildLeadFilters({
+    ...filters,
+    status: undefined,
+    scoreLabel: undefined,
+    followupDue: false,
+  });
+
+  const result = await db.query(
+    `SELECT
+       COUNT(*)::int AS all,
+       COUNT(*) FILTER (WHERE score_label = 'Hot')::int AS hot,
+       COUNT(*) FILTER (
+         WHERE followup_date IS NOT NULL
+           AND followup_date <= CURRENT_DATE
+       )::int AS followup_due,
+       COUNT(*) FILTER (WHERE status = 'negotiating')::int AS negotiating,
+       COUNT(*) FILTER (WHERE status = 'converted')::int AS converted,
+       COUNT(*) FILTER (WHERE status = 'lost')::int AS lost
+     FROM leads
+     WHERE ${whereSql}`,
+    values,
+  );
+
+  return {
+    all: result.rows[0]?.all ?? 0,
+    hot: result.rows[0]?.hot ?? 0,
+    followupDue: result.rows[0]?.followup_due ?? 0,
+    negotiating: result.rows[0]?.negotiating ?? 0,
+    converted: result.rows[0]?.converted ?? 0,
+    lost: result.rows[0]?.lost ?? 0,
   };
 };
 
@@ -203,14 +266,19 @@ export const listLeads = async (filters) => {
   );
 
   const total = countResult.rows[0]?.total ?? 0;
+  const summary = await getLeadSummary(filters);
+  const totalPages = Math.max(1, Math.ceil(total / limit));
 
   return {
     data: leadsResult.rows.map(mapLeadListResponse),
+    summary,
     pagination: {
       page,
       limit,
       total,
-      totalPages: Math.max(1, Math.ceil(total / limit)),
+      totalPages,
+      hasNextPage: page < totalPages,
+      hasPrevPage: page > 1,
     },
   };
 };
@@ -267,6 +335,61 @@ export const getLeadByPublicId = async ({ companyId, publicId }) => {
   );
 
   return result.rows[0] ? mapLeadResponse(result.rows[0]) : null;
+};
+
+export const deleteLead = async ({ companyId, publicId }) => {
+  const client = await db.connect();
+
+  try {
+    await client.query("BEGIN");
+
+    const leadResult = await client.query(
+      `SELECT id
+       FROM leads
+       WHERE company_id = $1
+         AND public_id = $2
+       LIMIT 1`,
+      [companyId, publicId],
+    );
+    const lead = leadResult.rows[0];
+
+    if (!lead) {
+      await client.query("ROLLBACK");
+      return null;
+    }
+
+    await client.query(
+      `UPDATE quotations
+       SET lead_id = NULL,
+           updated_at = NOW()
+       WHERE company_id = $1
+         AND lead_id = $2`,
+      [companyId, lead.id],
+    );
+
+    await client.query(
+      `DELETE FROM lead_activities
+       WHERE company_id = $1
+         AND lead_id = $2`,
+      [companyId, lead.id],
+    );
+
+    await client.query(
+      `DELETE FROM leads
+       WHERE company_id = $1
+         AND id = $2`,
+      [companyId, lead.id],
+    );
+
+    await client.query("COMMIT");
+
+    return { publicId };
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  } finally {
+    client.release();
+  }
 };
 
 export const updateLead = async (payload) => {

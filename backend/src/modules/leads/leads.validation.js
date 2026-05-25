@@ -28,15 +28,35 @@ const updateLeadRequestSchema = z
   })
   .strict();
 
+const positiveIntWithDefault = (defaultValue, maxValue) =>
+  z.preprocess((value) => {
+    const parsed = Number(value);
+
+    if (!Number.isInteger(parsed) || parsed < 1) {
+      return defaultValue;
+    }
+
+    return Math.min(parsed, maxValue);
+  }, z.number().int().min(1).max(maxValue).default(defaultValue));
+
 const leadListQuerySchema = z
   .object({
     companyId: z.coerce.number().int().positive("Company ID is required"),
-    page: z.coerce.number().int().min(1).default(1),
-    limit: z.coerce.number().int().min(1).max(100).default(20),
+    page: positiveIntWithDefault(1, 100000),
+    limit: positiveIntWithDefault(10, 100),
     search: z.string().trim().optional().default(""),
     status: z
       .enum(["new", "qualified", "quoted", "negotiating", "converted", "lost"])
       .optional(),
+    chemical: z.string().trim().optional().default(""),
+    country: z.string().trim().optional().default(""),
+    source: z.string().trim().optional().default(""),
+    owner: z.string().trim().optional().default(""),
+    scoreLabel: z.enum(["Cold", "Warm", "Hot"]).optional(),
+    followupDue: z
+      .preprocess((value) => value === true || value === "true", z.boolean())
+      .optional()
+      .default(false),
     sortBy: z
       .enum(["createdAt", "companyName", "score", "followUp", "value"])
       .optional()
@@ -223,6 +243,9 @@ export const validateLeadOptionsQuery = (query = {}) => {
     data: result.data,
   };
 };
+
+export const validateLeadDeleteQuery = ({ params = {}, query = {} }) =>
+  validateLeadDetailQuery({ params, query });
 
 export const validateFollowupPayload = ({ params = {}, body = {} }) => {
   const result = followupPayloadSchema.safeParse(body);

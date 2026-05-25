@@ -227,4 +227,62 @@ export const createQuotationStateFromPrefill = (initialData = {}) => {
   };
 };
 
+export const createQuotationStateFromDetail = (detail, metadata = {}) => {
+  const quotation = detail?.quotation ?? {};
+  const lead = detail?.lead;
+  const documents = Array.isArray(quotation.metadata?.documents)
+    ? quotation.metadata.documents
+    : undefined;
+
+  return createQuotationStateFromPrefill({
+    client: {
+      leadId: lead?.publicId ?? "",
+      name: quotation.clientName,
+      company: quotation.companyName,
+      email: quotation.clientEmail,
+      country: quotation.country,
+    },
+    quotationInfo: {
+      reference: quotation.quotationNumber,
+      currency: quotation.currency,
+      quotationDate: quotation.quotationDate,
+      validUntil: quotation.validUntil,
+    },
+    lineItems: (detail?.items ?? []).map((item) => ({
+      chemical: item.chemicalName,
+      grade: item.gradeSpec,
+      quantity: item.quantity,
+      unit: item.unit,
+      unitPrice: item.unitPrice,
+      supplierCost: item.supplierCost,
+      freight: item.freightCost,
+    })),
+    charges: {
+      freight: quotation.freightTotal,
+      otherCharges: quotation.additionalCharges,
+      discount: quotation.discountTotal,
+      discountType: quotation.metadata?.discountType ?? "amount",
+    },
+    tradeTerms: {
+      incoterm: quotation.incoterm,
+      loadingPort: quotation.loadingPort,
+      destinationPort: quotation.dischargePort,
+      paymentTerm: quotation.paymentTerms,
+      packaging: quotation.packagingDetails,
+    },
+    remarks: {
+      clientRemarks: quotation.remarks,
+      internalNotes: quotation.internalNotes,
+    },
+    documents,
+    metadata: {
+      ...quotation.metadata,
+      ...metadata,
+      mode: metadata.mode ?? "revise",
+      sourceQuotationPublicId: quotation.publicId,
+      sourceVersionNumber: quotation.versionNumber ?? 1,
+    },
+  });
+};
+
 export const initialQuotationState = createEmptyQuotationState();

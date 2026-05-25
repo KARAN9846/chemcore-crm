@@ -2,6 +2,7 @@ import express from "express";
 import leadActivitiesRoutes from "../leadActivities/leadActivities.routes.js";
 import {
   createLeadController,
+  deleteLeadController,
   getLeadController,
   listLeadOptionsController,
   listLeadsController,
@@ -17,6 +18,7 @@ router.use("/:publicId/activities", leadActivitiesRoutes);
 router.patch("/:publicId/follow-up", updateLeadFollowupController);
 router.patch("/:publicId", updateLeadController);
 router.get("/:publicId", getLeadController);
+router.delete("/:publicId", deleteLeadController);
 router.post("/", createLeadController);
 
 export default router;

@@ -9,16 +9,21 @@ const QuotationItemsTable = ({ currency, items }) => (
       <span className="quotation-section-icon">
         <i className="bi bi-list-ul" aria-hidden="true"></i>
       </span>
-      <h2>Line Items</h2>
+      <div>
+        <h2>Line Items</h2>
+        <p>Chemicals, specifications, quantity, pricing and live margin.</p>
+      </div>
     </header>
     <div className="quotation-section-body">
       <div className="quotation-line-table-wrap">
         <table className="quotation-line-table">
           <thead>
             <tr>
+              <th>#</th>
               <th>Chemical</th>
               <th>Grade / Spec</th>
               <th>Qty</th>
+              <th>Unit</th>
               <th>Unit Price</th>
               <th>Total</th>
               <th>Margin</th>
@@ -27,14 +32,24 @@ const QuotationItemsTable = ({ currency, items }) => (
           <tbody>
             {items.map((item) => (
               <tr key={`${item.chemicalName}-${item.sortOrder}`}>
-                <td>{item.chemicalName}</td>
-                <td>{item.gradeSpec || "-"}</td>
                 <td>
-                  {item.quantity} {item.unit}
+                  <span className="quotation-line-index">{item.sortOrder + 1}</span>
                 </td>
+                <td>
+                  <strong>{item.chemicalName}</strong>
+                </td>
+                <td>{item.gradeSpec || "-"}</td>
+                <td>{item.quantity}</td>
+                <td>{item.unit}</td>
                 <td>{formatQuotationMoney(item.unitPrice, currency)}</td>
-                <td>{formatQuotationMoney(item.lineTotal, currency)}</td>
-                <td>{formatQuotationPercent(item.marginPercent)}</td>
+                <td className="quotation-line-money">
+                  {formatQuotationMoney(item.lineTotal, currency)}
+                </td>
+                <td>
+                  <span className="quotation-line-margin healthy">
+                    {formatQuotationPercent(item.marginPercent)}
+                  </span>
+                </td>
               </tr>
             ))}
           </tbody>

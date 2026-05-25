@@ -18,8 +18,11 @@ import OrdersPage from "../pages/dashboard/OrdersPage";
 import PaymentsPage from "../pages/dashboard/PaymentsPage";
 import PurchaseOrdersPage from "../pages/dashboard/PurchaseOrdersPage";
 import CreateQuotationPage from "../features/quotations/pages/CreateQuotationPage";
+import QuotationCompareVersionsPage from "../pages/dashboard/QuotationCompareVersionsPage";
 import QuotationDetailPage from "../pages/dashboard/QuotationDetailPage";
+import QuotationPreviewPage from "../pages/dashboard/QuotationPreviewPage";
 import QuotationsPage from "../pages/dashboard/QuotationsPage";
+import ReviseQuotationPage from "../pages/dashboard/ReviseQuotationPage";
 import ReportsPage from "../pages/dashboard/ReportsPage";
 import SettingsPage from "../pages/dashboard/SettingsPage";
 import ShipmentsPage from "../pages/dashboard/ShipmentsPage";
@@ -45,6 +48,9 @@ const AppRoutes = () => {
           <Route path="leads/:publicId" element={<LeadDetailPage />} />
           <Route path="quotations" element={<QuotationsPage />} />
           <Route path="quotations/new" element={<CreateQuotationPage />} />
+          <Route path="quotations/:publicId/preview" element={<QuotationPreviewPage />} />
+          <Route path="quotations/:publicId/compare" element={<QuotationCompareVersionsPage />} />
+          <Route path="quotations/:publicId/revise" element={<ReviseQuotationPage />} />
           <Route path="quotations/:publicId" element={<QuotationDetailPage />} />
           <Route path="orders" element={<OrdersPage />} />
           <Route path="suppliers" element={<SuppliersPage />} />

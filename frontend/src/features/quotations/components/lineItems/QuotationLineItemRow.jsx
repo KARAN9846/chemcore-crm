@@ -9,6 +9,7 @@ const units = ["MT", "KG", "L"];
 const QuotationLineItemRow = ({
   currency,
   errors = {},
+  index,
   item,
   onDuplicate,
   onFieldBlur,
@@ -23,6 +24,9 @@ const QuotationLineItemRow = ({
 
   return (
     <tr className={Object.keys(errors).length ? "quotation-line-row-invalid" : ""}>
+    <td>
+      <span className="quotation-line-index">{index + 1}</span>
+    </td>
     <td>
       <select
         className={inputClass("chemical")}
@@ -119,7 +123,17 @@ const QuotationLineItemRow = ({
       <span className="quotation-line-total">
         {formatQuotationMoney(item.lineTotal, currency)}
       </span>
-      <span className={`quotation-line-margin ${item.marginPercent < 8 ? "low" : ""}`}>
+      <span
+        className={`quotation-line-margin ${
+          item.marginPercent < 0
+            ? "loss"
+            : item.marginPercent < 8
+              ? "low"
+              : item.marginPercent >= 15
+                ? "healthy"
+                : ""
+        }`}
+      >
         {formatQuotationPercent(item.marginPercent)}
       </span>
     </td>

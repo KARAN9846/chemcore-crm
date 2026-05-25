@@ -5,8 +5,8 @@ import {
   getQuotationMarginSnapshot,
 } from "../../utils/quotationMarginUtils";
 
-const QuotationMarginSidebar = ({ totals }) => {
-  const margin = getQuotationMarginSnapshot(totals);
+const QuotationMarginSidebar = ({ marginSnapshot, totals, warnings = [] }) => {
+  const margin = marginSnapshot ?? getQuotationMarginSnapshot(totals);
   const progress = Math.min(Math.max(margin.marginPercent, 0), 50) * 2;
 
   return (
@@ -20,8 +20,13 @@ const QuotationMarginSidebar = ({ totals }) => {
         </header>
 
         <div className="quotation-margin-display">
-          <strong>{margin.marginPercent.toFixed(1)}%</strong>
-          <span>Gross Margin</span>
+          <div
+            className={`quotation-margin-circle ${margin.marginHealth}`}
+            style={{ "--quotation-margin-progress": `${progress}%` }}
+          >
+            <strong>{margin.marginPercent.toFixed(1)}%</strong>
+            <span>Gross Margin</span>
+          </div>
           <p>
             Profit:{" "}
             <b>{formatQuotationMoney(margin.grossProfit, totals.currency)}</b>
@@ -59,8 +64,18 @@ const QuotationMarginSidebar = ({ totals }) => {
 
         <div className="quotation-margin-rows compact">
           <div>
+            <span>Subtotal</span>
+            <strong>{formatQuotationMoney(totals.subtotal, totals.currency)}</strong>
+          </div>
+          <div>
             <span>Total Quantity</span>
             <strong>{totals.totalQuantity.toLocaleString("en-US")}</strong>
+          </div>
+          <div>
+            <span>Line Freight</span>
+            <strong>
+              {formatQuotationMoney(totals.lineFreightTotal, totals.currency)}
+            </strong>
           </div>
           <div>
             <span>Freight</span>
@@ -77,6 +92,23 @@ const QuotationMarginSidebar = ({ totals }) => {
         <div className="quotation-min-price">
           <span>Min Sell Price (10% margin)</span>
           <strong>{formatQuotationMoney(margin.minSellPrice, totals.currency)}</strong>
+        </div>
+
+        <div className="quotation-sidebar-warnings">
+          <strong>Commercial Checks</strong>
+          {warnings.length ? (
+            warnings.slice(0, 3).map((warning) => (
+              <div key={warning} className="quotation-sidebar-warning">
+                <i className="bi bi-exclamation-triangle-fill" aria-hidden="true"></i>
+                <span>{warning}</span>
+              </div>
+            ))
+          ) : (
+            <div className="quotation-sidebar-ok">
+              <i className="bi bi-check-circle-fill" aria-hidden="true"></i>
+              No blocking commercial warnings.
+            </div>
+          )}
         </div>
       </section>
     </aside>

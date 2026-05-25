@@ -19,7 +19,11 @@ const ClientDetailsSection = ({
     `${controlClass(hasError)} quotation-readonly`;
 
   return (
-    <QuotationSection icon="bi-person-lines-fill" title="Client Details">
+    <QuotationSection
+      description="Choose a lead and confirm the billing contact before pricing."
+      icon="bi-person-lines-fill"
+      title="Client & Quotation Details"
+    >
     <div className="row g-3">
       <div className="col-md-6">
         <label className="lead-form-label" htmlFor="quotation-client">

@@ -1,4 +1,5 @@
 import { memo } from "react";
+import { Link } from "react-router-dom";
 
 import { formatLeadDate, formatLeadValue } from "../../utils/leadDisplayUtils";
 
@@ -18,10 +19,13 @@ const LeadInfoCard = ({ lead }) => {
           <i className="bi bi-person-lines-fill" aria-hidden="true"></i>
           Lead Information
         </h3>
-        <button type="button" className="lead-panel-action">
+        <Link
+          to={`/dashboard/leads/${lead.publicId}/edit`}
+          className="lead-panel-action"
+        >
           <i className="bi bi-pencil" aria-hidden="true"></i>
           Edit
-        </button>
+        </Link>
       </div>
 
       <div className="lead-info-sections">

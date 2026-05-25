@@ -2,6 +2,7 @@ import QuotationSection from "../common/QuotationSection";
 
 const QuotationDocumentsSection = ({ documents, onToggleDocument }) => (
   <QuotationSection
+    description="Documents referenced in the quotation pack."
     icon="bi-shield-check-fill"
     title="Documents Mentioned in Quotation"
   >

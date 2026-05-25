@@ -19,11 +19,16 @@ const QuotationLineItemsSection = ({
   onUpdateLine,
   totals,
 }) => (
-  <QuotationSection icon="bi-list-ul" title="Line Items">
+  <QuotationSection
+    description="Build the commercial line items with live totals and margin."
+    icon="bi-list-ul"
+    title="Line Items"
+  >
     <div className="quotation-line-table-wrap">
       <table className="quotation-line-table">
         <thead>
           <tr>
+            <th>#</th>
             <th>Chemical</th>
             <th>Grade / Spec</th>
             <th>Qty</th>
@@ -41,6 +46,7 @@ const QuotationLineItemsSection = ({
               key={item.id}
               currency={currency}
               errors={errors[index]}
+              index={index}
               item={item}
               removable={lineItems.length > 1}
               onDuplicate={onDuplicateLine}

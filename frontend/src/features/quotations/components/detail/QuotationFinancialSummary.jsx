@@ -1,4 +1,7 @@
-import { formatQuotationMoney } from "../../utils/quotationDisplayUtils";
+import {
+  formatQuotationMoney,
+  formatQuotationPercent,
+} from "../../utils/quotationDisplayUtils";
 
 const QuotationFinancialSummary = ({ quotation }) => {
   const rows = [
@@ -10,13 +13,30 @@ const QuotationFinancialSummary = ({ quotation }) => {
   ];
 
   return (
-    <section className="quotation-section">
+    <section className="quotation-section quotation-margin-summary-card">
       <header className="quotation-section-header">
         <span className="quotation-section-icon">
-          <i className="bi bi-calculator-fill" aria-hidden="true"></i>
+          <i className="bi bi-graph-up-arrow" aria-hidden="true"></i>
         </span>
-        <h2>Financial Summary</h2>
+        <div>
+          <h2>Margin Summary</h2>
+          <p>Totals and profitability from the saved quotation.</p>
+        </div>
       </header>
+      <div className="quotation-margin-display compact">
+        <div
+          className="quotation-margin-circle excellent"
+          style={{
+            "--quotation-margin-progress": `${Math.max(
+              0,
+              Math.min(Number(quotation.marginPercent || 0), 100),
+            )}%`,
+          }}
+        >
+          <strong>{formatQuotationPercent(quotation.marginPercent)}</strong>
+          <span>Gross Margin</span>
+        </div>
+      </div>
       <div className="quotation-financial-list">
         {rows.map(([label, value]) => (
           <div key={label} className={label === "Grand Total" ? "grand" : ""}>

@@ -1,7 +1,11 @@
 import QuotationSection from "../common/QuotationSection";
 
 const QuotationRemarksSection = ({ data, onInputChange }) => (
-  <QuotationSection icon="bi-chat-square-text-fill" title="Remarks & Terms">
+  <QuotationSection
+    description="Client-facing terms and private internal pricing notes."
+    icon="bi-chat-square-text-fill"
+    title="Remarks & Terms"
+  >
     <div className="row g-3">
       <div className="col-12">
         <label className="lead-form-label" htmlFor="quotation-client-remarks">
